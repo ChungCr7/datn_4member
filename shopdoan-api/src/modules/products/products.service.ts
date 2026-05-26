@@ -81,6 +81,7 @@ export class ProductsService {
     const where = {
       status: 'ACTIVE' as const,
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
+      ...(query.sellerId ? { sellerId: query.sellerId } : {}),
       ...(query.minPrice !== undefined || query.maxPrice !== undefined
         ? {
             OR: [
@@ -150,6 +151,82 @@ export class ProductsService {
     });
     this.setCachedList(cacheKey, response);
     return response;
+  }
+
+  async findAllForAdmin(query: ProductsQueryDto) {
+    const keyword = query.keyword?.trim().slice(0, 100);
+    const status = this.resolveAdminStatusFilter(query.status || query.filter);
+    const where = {
+      ...(status ? { status } : {}),
+      ...(query.categoryId ? { categoryId: query.categoryId } : {}),
+      ...(query.sellerId ? { sellerId: query.sellerId } : {}),
+      ...(query.minPrice !== undefined || query.maxPrice !== undefined
+        ? {
+            OR: [
+              {
+                salePrice: {
+                  ...(query.minPrice !== undefined
+                    ? { gte: query.minPrice }
+                    : {}),
+                  ...(query.maxPrice !== undefined
+                    ? { lte: query.maxPrice }
+                    : {}),
+                },
+              },
+              {
+                salePrice: null,
+                price: {
+                  ...(query.minPrice !== undefined
+                    ? { gte: query.minPrice }
+                    : {}),
+                  ...(query.maxPrice !== undefined
+                    ? { lte: query.maxPrice }
+                    : {}),
+                },
+              },
+            ],
+          }
+        : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { name: { contains: keyword, mode: 'insensitive' as const } },
+              {
+                description: {
+                  contains: keyword,
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                category: {
+                  name: { contains: keyword, mode: 'insensitive' as const },
+                },
+              },
+              {
+                seller: {
+                  shopName: { contains: keyword, mode: 'insensitive' as const },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        skip: query.skip,
+        take: query.take,
+        include: this.listInclude(),
+        orderBy: this.orderBy(query.sortBy),
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return this.response('Admin products retrieved successfully', {
+      products,
+      meta: this.meta(total, query.page, query.limit),
+    });
   }
 
   async findOne(id: number) {
@@ -311,6 +388,7 @@ export class ProductsService {
       scope,
       keyword: query.keyword?.trim().slice(0, 100) || '',
       categoryId: query.categoryId || null,
+      sellerId: query.sellerId || null,
       minPrice: query.minPrice ?? null,
       maxPrice: query.maxPrice ?? null,
       sortBy: query.sortBy || 'newest',
@@ -478,6 +556,13 @@ export class ProductsService {
         { ratingCount: 'desc' as const },
       ];
     return [{ createdAt: 'desc' as const }];
+  }
+
+  private resolveAdminStatusFilter(status?: string) {
+    const normalized = String(status || '').toUpperCase();
+    return ['DRAFT', 'ACTIVE', 'INACTIVE', 'BANNED'].includes(normalized)
+      ? (normalized as 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'BANNED')
+      : undefined;
   }
 
   private async uniqueSlug(value: string, currentId?: number) {

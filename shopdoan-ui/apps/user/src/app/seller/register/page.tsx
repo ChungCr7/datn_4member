@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import SellerShell from '@/components/seller/SellerShell';
 import { getMySellerProfile, registerSeller, SellerProfile, updateMySellerProfile } from '@/services/sellerService';
+import { uploadImage } from '@/services/uploadService';
 
 type SellerForm = {
   shopName: string;
@@ -31,6 +32,7 @@ export default function SellerRegisterPage() {
   const [form, setForm] = useState<SellerForm>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState<'logo' | 'banner' | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -84,6 +86,23 @@ export default function SellerRegisterPage() {
     }
   };
 
+  const uploadShopImage = async (kind: 'logo' | 'banner', file?: File) => {
+    if (!file || !accessToken) return;
+
+    setUploading(kind);
+    setError('');
+
+    try {
+      const folder = kind === 'logo' ? 'sellers/logos' : 'sellers/banners';
+      const result = await uploadImage(accessToken, file, folder);
+      setForm((current) => ({ ...current, [kind]: result.imageUrl }));
+    } catch (error: any) {
+      setError(error?.response?.data?.message || error?.message || 'Không upload được ảnh shop.');
+    } finally {
+      setUploading(null);
+    }
+  };
+
   return (
     <SellerShell>
       <div className="space-y-5">
@@ -119,8 +138,20 @@ export default function SellerRegisterPage() {
                 <Input label="Tên shop" value={form.shopName} onChange={(value) => setForm((current) => ({ ...current, shopName: value }))} required />
                 <Input label="Số điện thoại shop" value={form.phone} onChange={(value) => setForm((current) => ({ ...current, phone: value }))} />
                 <Input label="Địa chỉ shop" value={form.address} onChange={(value) => setForm((current) => ({ ...current, address: value }))} />
-                <Input label="Logo URL" value={form.logo} onChange={(value) => setForm((current) => ({ ...current, logo: value }))} />
-                <Input label="Banner URL" value={form.banner} onChange={(value) => setForm((current) => ({ ...current, banner: value }))} />
+                <ImageInput
+                  label="Logo shop"
+                  imageUrl={form.logo}
+                  uploading={uploading === 'logo'}
+                  onFileChange={(file) => uploadShopImage('logo', file)}
+                  onClear={() => setForm((current) => ({ ...current, logo: '' }))}
+                />
+                <ImageInput
+                  label="Banner shop"
+                  imageUrl={form.banner}
+                  uploading={uploading === 'banner'}
+                  onFileChange={(file) => uploadShopImage('banner', file)}
+                  onClear={() => setForm((current) => ({ ...current, banner: '' }))}
+                />
               </div>
               <label className="text-sm font-semibold">
                 Mô tả shop
@@ -133,7 +164,7 @@ export default function SellerRegisterPage() {
               </label>
               {message ? <p className="rounded-md bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
               {error ? <p className="rounded-md bg-red-50 p-3 text-sm font-semibold text-red-600">{error}</p> : null}
-              <button disabled={submitting} className="h-11 rounded-md bg-orange-500 font-bold text-white hover:bg-orange-600 disabled:opacity-60">
+              <button disabled={submitting || Boolean(uploading)} className="h-11 rounded-md bg-orange-500 font-bold text-white hover:bg-orange-600 disabled:opacity-60">
                 {submitting ? 'Đang lưu...' : profile ? 'Cập nhật hồ sơ' : 'Gửi đăng ký'}
               </button>
             </form>
@@ -168,6 +199,39 @@ function ShopPreview({ form, profile }: { form: SellerForm; profile: SellerProfi
       </div>
       {form.description ? <p className="border-t border-slate-100 px-5 py-4 text-sm text-slate-600">{form.description}</p> : null}
     </div>
+  );
+}
+
+function ImageInput({
+  label,
+  imageUrl,
+  uploading,
+  onFileChange,
+  onClear,
+}: {
+  label: string;
+  imageUrl: string;
+  uploading: boolean;
+  onFileChange: (file?: File) => void;
+  onClear: () => void;
+}) {
+  return (
+    <label className="text-sm font-semibold">
+      {label}
+      <div className="mt-2 flex min-h-28 gap-3 rounded-md border border-dashed border-slate-300 p-3">
+        {imageUrl ? <img src={imageUrl} alt={label} className="h-20 w-20 rounded-md object-cover" /> : <div className="grid h-20 w-20 place-items-center rounded-md bg-slate-100 text-xs text-slate-500">Chưa có ảnh</div>}
+        <div className="min-w-0 flex-1">
+          <input type="file" accept="image/*" onChange={(event) => onFileChange(event.target.files?.[0])} disabled={uploading} />
+          <p className="mt-2 text-xs font-normal text-slate-500">Upload ảnh lên Cloudinary, hệ thống tự lưu URL.</p>
+          {imageUrl ? (
+            <button type="button" onClick={onClear} className="mt-2 text-sm font-bold text-red-600">
+              Xóa ảnh
+            </button>
+          ) : null}
+          {uploading ? <p className="mt-2 text-sm font-semibold text-orange-600">Đang upload...</p> : null}
+        </div>
+      </div>
+    </label>
   );
 }
 

@@ -20,6 +20,7 @@ type ProductQuery = {
   limit: number;
   keyword: string;
   categoryId?: number;
+  sellerId?: number;
   minPrice?: number;
   maxPrice?: number;
   sortBy: SortBy;
@@ -60,6 +61,7 @@ function ProductListContent() {
   useEffect(() => {
     const keyword = searchParams.get('search') || searchParams.get('keyword') || '';
     const categoryId = Number(searchParams.get('categoryId')) || undefined;
+    const sellerId = Number(searchParams.get('sellerId')) || undefined;
     const sortBy = (searchParams.get('sortBy') as SortBy) || 'newest';
 
     setDraftKeyword(keyword);
@@ -68,6 +70,7 @@ function ProductListContent() {
       page: 1,
       keyword,
       categoryId,
+      sellerId,
       sortBy: sortOptions.some((option) => option.value === sortBy) ? sortBy : 'newest',
     }));
   }, [searchParams]);
@@ -109,6 +112,11 @@ function ProductListContent() {
     [categories, query.categoryId],
   );
 
+  const selectedSellerName = useMemo(
+    () => products.find((product) => product.seller?.id === query.sellerId)?.seller?.shopName,
+    [products, query.sellerId],
+  );
+
   const pageNumbers = useMemo(() => {
     const totalPages = Math.max(1, meta.totalPages || 1);
     const start = Math.max(1, query.page - 2);
@@ -133,7 +141,7 @@ function ProductListContent() {
   const resetFilters = () => {
     setDraftKeyword('');
     setPriceRange({ min: '', max: '' });
-    setQuery({ page: 1, limit: 12, keyword: '', sortBy: 'newest' });
+    setQuery({ page: 1, limit: 12, keyword: '', sellerId: query.sellerId, sortBy: 'newest' });
   };
 
   return (
@@ -147,9 +155,11 @@ function ProductListContent() {
                 <Filter className="h-4 w-4" />
                 Marketplace
               </div>
-              <h1 className="text-3xl font-bold">Tất cả sản phẩm</h1>
+              <h1 className="text-3xl font-bold">{query.sellerId ? selectedSellerName || 'Sản phẩm của shop' : 'Tất cả sản phẩm'}</h1>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Tìm kiếm sản phẩm đa ngành hàng, lọc theo danh mục, khoảng giá và độ phổ biến.
+                {query.sellerId
+                  ? 'Chỉ hiển thị sản phẩm thuộc shop này, có thể lọc thêm theo danh mục và khoảng giá.'
+                  : 'Tìm kiếm sản phẩm đa ngành hàng, lọc theo danh mục, khoảng giá và độ phổ biến.'}
               </p>
             </div>
 
@@ -243,6 +253,7 @@ function ProductListContent() {
                   <>
                     Tìm thấy <span className="font-bold text-slate-950">{meta.total || products.length}</span> sản phẩm
                     {selectedCategory ? <span> trong {selectedCategory.name}</span> : null}
+                    {selectedSellerName ? <span> của {selectedSellerName}</span> : null}
                   </>
                 )}
               </div>

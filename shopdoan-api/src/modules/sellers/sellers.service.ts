@@ -111,6 +111,61 @@ export class SellersService {
     return this.response('Seller profile updated successfully', profile);
   }
 
+  async getPublicProfile(idOrSlug: string) {
+    const id = Number(idOrSlug);
+    const profile = await this.prisma.sellerProfile.findFirst({
+      where: Number.isFinite(id) && id > 0
+        ? { id, status: 'APPROVED' }
+        : { shopSlug: idOrSlug, status: 'APPROVED' },
+      include: this.include(),
+    });
+    if (!profile) throw new NotFoundException('Seller profile not found');
+
+    const [activeProducts, productStats, latestProducts] = await Promise.all([
+      this.prisma.product.count({
+        where: { sellerId: profile.id, status: 'ACTIVE' },
+      }),
+      this.prisma.product.aggregate({
+        where: { sellerId: profile.id, status: 'ACTIVE' },
+        _sum: { soldCount: true, ratingCount: true },
+        _avg: { ratingAverage: true },
+      }),
+      this.prisma.product.findMany({
+        where: { sellerId: profile.id, status: 'ACTIVE' },
+        include: {
+          seller: {
+            select: {
+              id: true,
+              shopName: true,
+              shopSlug: true,
+              logo: true,
+              status: true,
+            },
+          },
+          category: { select: { id: true, name: true, slug: true } },
+          images: {
+            orderBy: { sortOrder: 'asc' as const },
+            take: 1,
+            select: { id: true, imageUrl: true, sortOrder: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 12,
+      }),
+    ]);
+
+    return this.response('Seller public profile retrieved successfully', {
+      seller: profile,
+      stats: {
+        activeProducts,
+        soldCount: productStats._sum.soldCount || 0,
+        ratingAverage: productStats._avg.ratingAverage || 0,
+        ratingCount: productStats._sum.ratingCount || 0,
+      },
+      products: latestProducts,
+    });
+  }
+
   async findAll(pagination: PaginationDto) {
     const search = pagination.search?.trim().slice(0, 100);
     const where = {

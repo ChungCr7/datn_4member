@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
+import { Public } from '@/auth/decorators/public.decorator';
 import { RegisterSellerDto, UpdateSellerProfileDto } from './dto/seller.dto';
 import { SellersService } from './sellers.service';
 
@@ -31,5 +32,11 @@ export class SellersController {
       user.userId || user.sub || user.id,
       dto,
     );
+  }
+
+  @Get('public/:idOrSlug')
+  @Public()
+  getPublicProfile(@Param('idOrSlug') idOrSlug: string) {
+    return this.sellersService.getPublicProfile(idOrSlug);
   }
 }

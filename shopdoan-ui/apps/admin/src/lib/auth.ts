@@ -54,7 +54,7 @@ export const authOptions: NextAuthOptions = {
 
           const role = typeof data.user.role === 'string' ? data.user.role.toLowerCase() : '';
 
-          if (role !== 'admin' && role !== 'seller' && role !== 'root') {
+          if (role !== 'admin' && role !== 'root') {
             return null;
           }
 
@@ -66,8 +66,12 @@ export const authOptions: NextAuthOptions = {
             accessToken: data.accessToken,
             refreshToken: data.refreshToken,
           };
-        } catch (error) {
-          console.error('Auth error:', error);
+        } catch (error: any) {
+          const message =
+            error?.response?.data?.message ||
+            error?.message ||
+            'Không đăng nhập được';
+          console.error('Auth error:', message);
           return null;
         }
       },

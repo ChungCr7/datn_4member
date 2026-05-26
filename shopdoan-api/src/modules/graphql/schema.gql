@@ -2,16 +2,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-type AiAssistantResponseType {
-  intent: String!
-  message: String!
-  recommendations: [ProductType!]!
-}
-
-type Mutation {
-  askAi(message: String!): AiAssistantResponseType!
-}
-
 type PageMetaType {
   limit: Int!
   page: Int!

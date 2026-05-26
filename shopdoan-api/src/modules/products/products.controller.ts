@@ -89,3 +89,16 @@ export class ProductsController {
     });
   }
 }
+
+@ApiTags('Admin Products')
+@Controller('admin/products')
+@ApiBearerAuth()
+@Roles('admin', 'root')
+export class AdminProductsController {
+  constructor(private readonly productsService: ProductsService) {}
+
+  @Get()
+  findAll(@Query() query: ProductsQueryDto) {
+    return this.productsService.findAllForAdmin(query);
+  }
+}

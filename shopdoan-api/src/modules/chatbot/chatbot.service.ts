@@ -337,7 +337,7 @@ export class ChatbotService {
     userId?: number,
   ): Promise<BotPayload> {
     const quickReplies = [
-      'Tìm áo nam',
+      'Tìm iPhone dưới 30 triệu',
       'Sản phẩm đang giảm giá',
       'Đơn hàng của tôi ở đâu?',
       'Cách đăng ký bán hàng',
@@ -403,7 +403,7 @@ export class ChatbotService {
         intent: parsed.intent,
         products,
         quickReplies,
-        response: `Mình tìm thấy vài sản phẩm phù hợp:\n${lines.join('\n')}\nBạn có thể lọc thêm theo giá, danh mục hoặc tên shop.`,
+        response: `Mình tìm thấy vài sản phẩm phù hợp:\n${lines.join('\n')}\nBạn có thể mở chi tiết, thêm vào giỏ hoặc hỏi tiếp theo giá/danh mục/tên shop.`,
         cartAction: /them vao gio|bo vao gio|dat mua|mua ngay/.test(
           this.normalize(rawMessage),
         )
@@ -417,7 +417,7 @@ export class ChatbotService {
       products: [],
       quickReplies,
       response:
-        'Mình chưa tìm thấy thông tin đủ khớp. Bạn có thể hỏi theo mẫu như "tôi muốn mua áo nam", "giá tai nghe bluetooth", "đơn hàng của tôi ở đâu" hoặc "cách đăng ký bán hàng".',
+        'Mình chưa tìm thấy thông tin đủ khớp. Bạn có thể hỏi theo mẫu như "tìm iPhone dưới 30 triệu", "giá tai nghe bluetooth", "đơn hàng của tôi ở đâu" hoặc "cách đăng ký bán hàng".',
     };
   }
 
@@ -473,9 +473,15 @@ export class ChatbotService {
   }
 
   private async findProducts(keyword: string, priceMax?: number) {
+    const normalized = this.normalize(keyword);
+    const saleOnly = /giam|khuyen mai|sale|flash sale|uu dai/.test(
+      normalized,
+    );
+    const bestSelling = /ban chay|hot|pho bien/.test(normalized);
     const terms = this.extractKeywords(keyword);
     const where = {
       status: 'ACTIVE' as const,
+      ...(saleOnly ? { salePrice: { not: null } } : {}),
       ...(priceMax
         ? {
             OR: [
@@ -484,7 +490,7 @@ export class ChatbotService {
             ],
           }
         : {}),
-      ...(terms.length
+      ...(!saleOnly && terms.length
         ? {
             AND: terms.slice(0, 5).map((term) => ({
               OR: [
@@ -497,26 +503,106 @@ export class ChatbotService {
                     name: { contains: term, mode: 'insensitive' as const },
                   },
                 },
+                {
+                  seller: {
+                    shopName: { contains: term, mode: 'insensitive' as const },
+                  },
+                },
               ],
             })),
           }
         : {}),
     };
 
-    const products = await this.prisma.product.findMany({
+    let products = await this.prisma.product.findMany({
       where,
       include: {
         images: { orderBy: { sortOrder: 'asc' }, take: 1 },
         category: { select: { id: true, name: true, slug: true } },
         seller: { select: { id: true, shopName: true, shopSlug: true } },
       },
-      orderBy: [
-        { soldCount: 'desc' },
-        { ratingAverage: 'desc' },
-        { createdAt: 'desc' },
+      orderBy: bestSelling
+        ? [
+            { soldCount: 'desc' as const },
+            { ratingAverage: 'desc' as const },
+            { createdAt: 'desc' as const },
+          ]
+        : [
+            { ratingAverage: 'desc' as const },
+            { soldCount: 'desc' as const },
+            { createdAt: 'desc' as const },
       ],
       take: 8,
     });
+
+    if (!products.length && terms.length) {
+      products = await this.prisma.product.findMany({
+        where: {
+          status: 'ACTIVE',
+          ...(priceMax
+            ? {
+                OR: [
+                  { salePrice: { lte: priceMax } },
+                  { price: { lte: priceMax } },
+                ],
+              }
+            : {}),
+          OR: terms.slice(0, 5).flatMap((term) => [
+            { name: { contains: term, mode: 'insensitive' as const } },
+            { description: { contains: term, mode: 'insensitive' as const } },
+            {
+              category: {
+                name: { contains: term, mode: 'insensitive' as const },
+              },
+            },
+            {
+              seller: {
+                shopName: { contains: term, mode: 'insensitive' as const },
+              },
+            },
+          ]),
+        },
+        include: {
+          images: { orderBy: { sortOrder: 'asc' }, take: 1 },
+          category: { select: { id: true, name: true, slug: true } },
+          seller: { select: { id: true, shopName: true, shopSlug: true } },
+        },
+        orderBy: [
+          { soldCount: 'desc' as const },
+          { ratingAverage: 'desc' as const },
+          { createdAt: 'desc' as const },
+        ],
+        take: 8,
+      });
+    }
+
+    if (!products.length && (saleOnly || bestSelling || terms.length)) {
+      products = await this.prisma.product.findMany({
+        where: {
+          status: 'ACTIVE',
+          ...(priceMax
+            ? {
+                OR: [
+                  { salePrice: { lte: priceMax } },
+                  { price: { lte: priceMax } },
+                ],
+              }
+            : {}),
+        },
+        include: {
+          images: { orderBy: { sortOrder: 'asc' }, take: 1 },
+          category: { select: { id: true, name: true, slug: true } },
+          seller: { select: { id: true, shopName: true, shopSlug: true } },
+        },
+        orderBy: [
+          ...(saleOnly ? [{ salePrice: 'asc' as const }] : []),
+          { soldCount: 'desc' as const },
+          { ratingAverage: 'desc' as const },
+          { createdAt: 'desc' as const },
+        ],
+        take: 8,
+      });
+    }
 
     return products.map((product) => ({
       id: product.id,
@@ -569,6 +655,11 @@ export class ChatbotService {
       'voi',
       'mot',
       'cai',
+      'dang',
+      'giam',
+      'trieu',
+      'nghin',
+      'k',
     ]);
 
     return this.normalize(text)

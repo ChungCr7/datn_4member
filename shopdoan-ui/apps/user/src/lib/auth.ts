@@ -62,8 +62,12 @@ export const authOptions: NextAuthOptions = {
             accessToken: data.accessToken,
             refreshToken: data.refreshToken,
           };
-        } catch (error) {
-          console.error('Auth error:', error);
+        } catch (error: any) {
+          const message =
+            error?.response?.data?.message ||
+            error?.message ||
+            'Không đăng nhập được';
+          console.error('Auth error:', message);
           return null;
         }
       },

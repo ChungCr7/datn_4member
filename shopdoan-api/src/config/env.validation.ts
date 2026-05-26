@@ -27,10 +27,6 @@ export const envValidationSchema = Joi.object({
     .allow('', null)
     .default('ShopDoan <no-reply@shopdoan.vn>'),
 
-  GEMINI_API_KEY: Joi.string().allow('', null),
-  GEMINI_MODEL: Joi.string().default('gemini-2.5-flash'),
-  LOCAL_AI_URL: Joi.string().allow('', null),
-  LOCAL_AI_MODEL: Joi.string().allow('', null).default('qwen2.5:3b'),
   STRIPE_SECRET_KEY: Joi.string().allow('', null),
   STRIPE_WEBHOOK_SECRET: Joi.string().allow('', null),
   USER_FRONTEND_URL: Joi.string().uri().allow('', null),

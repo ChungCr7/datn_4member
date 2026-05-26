@@ -22,9 +22,10 @@ import { ShopsModule } from '@/modules/shops/shops.module';
 import { SellersModule } from '@/modules/sellers/sellers.module';
 import { SellerModule } from '@/modules/seller/seller.module';
 import { RecommendationModule } from '@/modules/recommendation/recommendation.module';
-import { AiModule } from '@/modules/ai/ai.module';
 import { envValidationSchema } from '@/config/env.validation';
 import { MailModule } from '@/mail/mail.module';
+import { UploadModule } from '@/common/upload.module';
+import { ShopChatModule } from '@/modules/shop-chat/shop-chat.module';
 
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
@@ -57,6 +58,7 @@ import { join } from 'path';
     }),
     PrismaModule,
     MailModule,
+    UploadModule,
 
     SystemModule,
     AuthModule,
@@ -75,7 +77,7 @@ import { join } from 'path';
     SellersModule,
     SellerModule,
     RecommendationModule,
-    AiModule,
+    ShopChatModule,
   ],
 
   controllers: [AppController],

@@ -26,9 +26,7 @@ export default function AdminSignIn() {
     if (status === 'authenticated' && session?.user) {
       const user = session.user as SessionUser;
       const role = user.role?.toLowerCase();
-      if (role === 'admin' || role === 'seller' || role === 'root') {
-        router.push('/');
-      }
+      if (role === 'admin' || role === 'root') router.push('/');
     }
   }, [status, session, router]);
 
@@ -42,16 +40,14 @@ export default function AdminSignIn() {
       });
 
       if (result?.error) {
-        messageApi.error('Email hoac mat khau khong dung, hoac ban khong co quyen truy cap admin/seller/root');
+        messageApi.error('Email hoặc mật khẩu không đúng, hoặc tài khoản không có quyền quản trị.');
       } else if (result?.ok) {
         messageApi.success('Đăng nhập thành công');
         setRedirecting(true);
-        window.setTimeout(() => {
-          router.push('/');
-        }, 500);
+        window.setTimeout(() => router.push('/'), 500);
       }
     } catch {
-      messageApi.error('Co loi xay ra. Vui long thu lai.');
+      messageApi.error('Có lỗi xảy ra. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -59,73 +55,41 @@ export default function AdminSignIn() {
 
   if (!mounted || redirecting) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <Spin size="large" description={redirecting ? 'Đang chuyển hướng...' : 'Đang tải...'} />
+      <div className="flex min-h-screen items-center justify-center bg-slate-100">
+        <Spin size="large" tip={redirecting ? 'Đang chuyển hướng...' : 'Đang tải...'} />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
       <Card className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">ShopDoan Seller</h1>
-          <p className="mt-2 text-gray-600">Đăng nhập vào hệ thống quản trị</p>
+          <h1 className="text-2xl font-bold text-slate-950">ShopDoAn Admin</h1>
+          <p className="mt-2 text-slate-600">Đăng nhập hệ thống quản trị sàn thương mại</p>
         </div>
 
         <Form name="admin-signin" onFinish={onFinish} layout="vertical" size="large" autoComplete="on">
           <Form.Item
             name="email"
             rules={[
-              { required: true, message: 'Vui long nhap email!' },
-              { type: 'email', message: 'Email khong hop le!' },
+              { required: true, message: 'Vui lòng nhập email.' },
+              { type: 'email', message: 'Email không hợp lệ.' },
             ]}
           >
-            <Input
-              prefix={<UserOutlined />}
-              placeholder="Email admin"
-              disabled={loading || redirecting}
-              autoComplete="email"
-              suppressHydrationWarning
-            />
+            <Input prefix={<UserOutlined />} placeholder="Email admin" disabled={loading || redirecting} autoComplete="email" />
           </Form.Item>
 
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: 'Vui long nhap mat khau!' }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="Mật khẩu"
-              disabled={loading || redirecting}
-              autoComplete="current-password"
-              suppressHydrationWarning
-            />
+          <Form.Item name="password" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu.' }]}>
+            <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu" disabled={loading || redirecting} autoComplete="current-password" />
           </Form.Item>
 
           <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              className="w-full"
-              loading={loading || redirecting}
-              suppressHydrationWarning
-            >
+            <Button type="primary" htmlType="submit" className="w-full" loading={loading || redirecting}>
               Đăng nhập
             </Button>
           </Form.Item>
         </Form>
-
-        <div className="mt-4 text-center">
-          <Button
-            type="link"
-            onClick={() => router.push('/')}
-            disabled={loading || redirecting}
-            suppressHydrationWarning
-          >
-            Quay lai trang chu
-          </Button>
-        </div>
       </Card>
     </div>
   );

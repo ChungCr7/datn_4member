@@ -316,10 +316,16 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
                 <Link
-                  href={`/menu?sellerId=${product.seller?.id || ''}`}
+                  href={`/shop/${product.seller?.id || ''}`}
                   className="rounded-md border border-slate-300 px-4 py-2 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Xem shop
+                </Link>
+                <Link
+                  href={`/shop/${product.seller?.id || ''}#shop-chat-box`}
+                  className="rounded-md bg-orange-500 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-orange-600"
+                >
+                  Trò chuyện với shop
                 </Link>
               </div>
             </section>

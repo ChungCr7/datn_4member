@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Package, PlusCircle, ShoppingBag, Store } from 'lucide-react';
+import { BarChart3, MessageCircle, Package, PlusCircle, ShoppingBag, Store } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/seller/products', label: 'Sản phẩm', icon: Package },
   { href: '/seller/products/new', label: 'Tạo sản phẩm', icon: PlusCircle },
   { href: '/seller/orders', label: 'Đơn hàng', icon: ShoppingBag },
+  { href: '/seller/chats', label: 'Tin nhắn', icon: MessageCircle },
   { href: '/seller/register', label: 'Hồ sơ shop', icon: Store },
 ];
 

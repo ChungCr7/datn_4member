@@ -171,6 +171,11 @@ export class ProductsQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  sellerId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   minPrice?: number;
 
   @IsOptional()
@@ -181,6 +186,14 @@ export class ProductsQueryDto {
   @IsOptional()
   @IsIn(['newest', 'price_asc', 'price_desc', 'best_selling', 'rating'])
   sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'best_selling' | 'rating';
+
+  @IsOptional()
+  @IsIn(['DRAFT', 'ACTIVE', 'INACTIVE', 'BANNED'])
+  status?: 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'BANNED';
+
+  @IsOptional()
+  @IsString()
+  filter?: string;
 
   @IsOptional()
   @Type(() => Number)

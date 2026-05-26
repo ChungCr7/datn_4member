@@ -1,10 +1,24 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { v2 as cloudinary } from 'cloudinary';
 import { ConfigService } from '@nestjs/config';
 import * as streamifier from 'streamifier';
 
+export type UploadedImage = {
+  imageUrl: string;
+  publicId: string;
+  width?: number;
+  height?: number;
+  format?: string;
+};
+
 @Injectable()
 export class UploadService {
+  private readonly maxImageSize = 5 * 1024 * 1024;
+
   constructor(private configService: ConfigService) {
     cloudinary.config({
       cloud_name: this.configService.get<string>('CLOUDINARY_CLOUD_NAME'),
@@ -17,11 +31,24 @@ export class UploadService {
     file: Express.Multer.File,
     folder: string = 'shopdoan',
   ): Promise<string> {
+    const result = await this.uploadImageWithMeta(file, folder);
+    return result.imageUrl;
+  }
+
+  async uploadImageWithMeta(
+    file: Express.Multer.File,
+    folder: string = 'shopdoan',
+  ): Promise<UploadedImage> {
+    this.validateImageFile(file);
+    const normalizedFolder = this.normalizeFolder(folder);
+
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: `shopdoan/${folder}`,
-          resource_type: 'auto',
+          folder: `shopdoan/${normalizedFolder}`,
+          resource_type: 'image',
+          allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+          transformation: [{ quality: 'auto', fetch_format: 'auto' }],
         },
         (error, result) => {
           if (error) {
@@ -36,7 +63,13 @@ export class UploadService {
             return;
           }
 
-          resolve(result.secure_url);
+          resolve({
+            imageUrl: result.secure_url,
+            publicId: result.public_id,
+            width: result.width,
+            height: result.height,
+            format: result.format,
+          });
         },
       );
 
@@ -84,5 +117,30 @@ export class UploadService {
       console.error('Error deleting image:', error);
       // Don't throw - continue operation even if delete fails
     }
+  }
+
+  private validateImageFile(file?: Express.Multer.File): void {
+    if (!file) {
+      throw new BadRequestException('Image file is required');
+    }
+
+    if (!file.mimetype?.startsWith('image/')) {
+      throw new BadRequestException('Only image files are allowed');
+    }
+
+    if (file.size > this.maxImageSize) {
+      throw new BadRequestException('Image size must be less than 5MB');
+    }
+  }
+
+  private normalizeFolder(folder?: string): string {
+    const value = String(folder || 'misc')
+      .trim()
+      .replace(/\\/g, '/')
+      .replace(/[^a-zA-Z0-9/_-]/g, '')
+      .replace(/\/+/g, '/')
+      .replace(/^\/+|\/+$/g, '');
+
+    return value || 'misc';
   }
 }

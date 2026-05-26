@@ -61,6 +61,7 @@ export async function getProducts(params?: {
   keyword?: string;
   search?: string;
   categoryId?: number;
+  sellerId?: number;
   minPrice?: number;
   maxPrice?: number;
   sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'best_selling' | 'rating';
