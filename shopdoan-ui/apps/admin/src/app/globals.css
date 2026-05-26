@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f8fb;
+  --foreground: #111827;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: 'Inter', sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.ant-layout-sider {
+  box-shadow: 6px 0 24px rgba(15, 23, 42, 0.08);
+}
+
+.ant-card {
+  border-color: #e5e7eb;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}

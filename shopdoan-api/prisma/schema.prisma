@@ -1,0 +1,847 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  ordered
+  confirmed
+  preparing
+  on_the_way
+  delivered
+  cancelled
+}
+
+enum ChatMessageRole {
+  user
+  assistant
+  admin
+  seller
+  root
+  system
+}
+
+enum ProductStatus {
+  active
+  hidden
+  draft
+  rejected
+}
+
+enum ShopStatus {
+  pending
+  active
+  suspended
+}
+
+enum SellerRequestStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+enum InventoryMovementType {
+  import
+  sale
+  adjustment
+  return
+  cancel
+}
+
+enum SearchTargetType {
+  product
+  shop
+  category
+  all
+}
+
+enum ReviewTargetType {
+  product
+  shop
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  cancelled
+  refunded
+}
+
+enum PaymentProvider {
+  cash
+  stripe
+}
+
+enum UserRole {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+enum SellerProfileStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum MarketplaceProductStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  BANNED
+}
+
+enum PaymentMethod {
+  COD
+  MOMO
+  CREDIT_CARD
+  BANK_TRANSFER
+}
+
+enum MarketplacePaymentStatus {
+  UNPAID
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum MarketplaceOrderStatus {
+  PENDING
+  CONFIRMED
+  PACKING
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
+enum ChatSender {
+  USER
+  BOT
+}
+
+model Role {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  users     User[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("roles")
+}
+
+model User {
+  id                 Int       @id @default(autoincrement())
+  name               String?
+  fullName           String?   @map("full_name")
+  email              String    @unique
+  password           String
+  phone              String?
+  address            String?
+  image              String?
+  avatar             String?
+  accountRole        UserRole  @default(BUYER) @map("role")
+  roleId             Int       @map("role_id")
+  isActive           Boolean   @default(true) @map("is_active")
+  codeId             String?   @map("code_id")
+  codeExpired        DateTime? @map("code_expired")
+  verificationSentAt DateTime? @map("verification_sent_at")
+  codeAttempts       Int       @default(0) @map("code_attempts")
+  codeAttemptExpired DateTime? @map("code_attempt_expired")
+  refreshToken       String?   @map("refresh_token")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  role                     Role                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  shop                     Shop?
+  orders                   Order[]
+  reviews                  Review[]
+  conversations            Conversation[]
+  sentChatMessages         Message[]
+  cartItems                CartItem[]
+  aiMemories               AiMemory[]
+  viewedProducts           ProductView[]
+  searchEvents             SearchHistory[]
+  sellerRequests           SellerRequest[]
+  reviewedSellerRequests   SellerRequest[]      @relation("SellerRequestReviewer")
+  sellerProfile            SellerProfile?
+  cart                     Cart?
+  marketplaceOrders        Order[]              @relation("BuyerOrders")
+  marketplaceReviews       Review[]             @relation("BuyerReviews")
+  productViewHistory       ProductViewHistory[]
+  marketplaceSearchHistory SearchHistory[]      @relation("UserSearchHistory")
+  recommendationLogs       RecommendationLog[]
+  chatSessions             ChatSession[]
+
+  @@index([roleId])
+  @@index([email])
+  @@index([accountRole])
+  @@index([isActive, createdAt])
+  @@map("users")
+}
+
+model SellerProfile {
+  id          Int                 @id @default(autoincrement())
+  userId      Int                 @unique @map("user_id")
+  shopName    String              @map("shop_name")
+  shopSlug    String              @unique @map("shop_slug")
+  description String?
+  logo        String?
+  banner      String?
+  address     String?
+  phone       String?
+  status      SellerProfileStatus @default(PENDING)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products   Product[]
+  orderItems OrderItem[]
+
+  @@index([status])
+  @@index([shopName])
+  @@map("seller_profiles")
+}
+
+model Shop {
+  id           Int        @id @default(autoincrement())
+  ownerId      Int        @unique @map("owner_id")
+  shopName     String     @map("shop_name")
+  slug         String?    @unique
+  description  String?
+  logo         String?
+  banner       String?
+  phone        String?
+  address      String?
+  rating       Float      @default(0)
+  followers    Int        @default(0)
+  responseRate Float      @default(0) @map("response_rate")
+  status       ShopStatus @default(pending)
+  approvedAt   DateTime?  @map("approved_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  products       MenuItem[]
+  orderItems     OrderDetail[]
+  reviews        Review[]
+  conversations  Conversation[]
+  categories     ShopCategory[]
+  sellerRequests SellerRequest[]
+
+  @@index([status])
+  @@index([shopName])
+  @@index([slug])
+  @@map("shops")
+}
+
+model SellerRequest {
+  id           Int                 @id @default(autoincrement())
+  userId       Int                 @map("user_id")
+  shopId       Int?                @map("shop_id")
+  shopName     String              @map("shop_name")
+  description  String?
+  logo         String?
+  banner       String?
+  phone        String?
+  address      String?
+  businessType String?             @map("business_type")
+  status       SellerRequestStatus @default(pending)
+  rejectReason String?             @map("reject_reason")
+  reviewedById Int?                @map("reviewed_by_id")
+  reviewedAt   DateTime?           @map("reviewed_at")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  user       User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shop       Shop? @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  reviewedBy User? @relation("SellerRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([shopId])
+  @@index([status, createdAt])
+  @@map("seller_requests")
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  parentId    Int?     @map("parent_id")
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  parent              Category?      @relation("CategoryChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children            Category[]     @relation("CategoryChildren")
+  products            MenuItem[]
+  marketplaceProducts Product[]
+  shopCategories      ShopCategory[]
+
+  @@index([parentId])
+  @@index([isActive, sortOrder])
+  @@map("categories")
+}
+
+model Product {
+  id            Int                      @id @default(autoincrement())
+  sellerId      Int                      @map("seller_id")
+  categoryId    Int                      @map("category_id")
+  name          String
+  slug          String                   @unique
+  description   String?
+  price         Float
+  salePrice     Float?                   @map("sale_price")
+  stock         Int                      @default(0)
+  soldCount     Int                      @default(0) @map("sold_count")
+  ratingAverage Float                    @default(0) @map("rating_average")
+  ratingCount   Int                      @default(0) @map("rating_count")
+  status        MarketplaceProductStatus @default(DRAFT)
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  updatedAt     DateTime                 @updatedAt @map("updated_at")
+
+  seller             SellerProfile        @relation(fields: [sellerId], references: [id], onDelete: Restrict)
+  category           Category             @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images             ProductImage[]
+  variants           ProductVariant[]
+  cartItems          CartItem[]
+  orderItems         OrderItem[]
+  reviews            Review[]             @relation("ProductReviews")
+  viewHistory        ProductViewHistory[]
+  recommendationLogs RecommendationLog[]
+  searchHistory      SearchHistory[]
+
+  @@index([sellerId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([name])
+  @@index([soldCount])
+  @@map("products")
+}
+
+model ProductImage {
+  id        Int    @id @default(autoincrement())
+  productId Int    @map("product_id")
+  imageUrl  String @map("image_url")
+  sortOrder Int    @default(0) @map("sort_order")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+model ShopCategory {
+  id         Int      @id @default(autoincrement())
+  shopId     Int      @map("shop_id")
+  categoryId Int      @map("category_id")
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  shop     Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, categoryId])
+  @@index([shopId])
+  @@index([categoryId])
+  @@map("shop_categories")
+}
+
+model Menu {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  image       String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  menuItems MenuItem[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("menus")
+}
+
+model MenuItem {
+  id          Int           @id @default(autoincrement())
+  menuId      Int           @map("menu_id")
+  shopId      Int?          @map("shop_id")
+  categoryId  Int?          @map("category_id")
+  title       String
+  slug        String?
+  description String?
+  basePrice   Float         @map("base_price")
+  image       String?
+  stock       Int           @default(0)
+  soldCount   Int           @default(0) @map("sold_count")
+  rating      Float         @default(0)
+  attributes  Json?
+  status      ProductStatus @default(active)
+  isAvailable Boolean       @default(true) @map("is_available")
+  sortOrder   Int           @default(0) @map("sort_order")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  menu               Menu                @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  shop               Shop?               @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  category           Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  options            MenuItemOption[]
+  variants           ProductVariant[]
+  productAttributes  ProductAttribute[]
+  inventoryMovements InventoryMovement[]
+  orderDetails       OrderDetail[]
+  reviews            Review[]
+  cartItems          CartItem[]
+  embeddings         ProductEmbedding[]
+  views              ProductView[]
+  searches           SearchHistory[]
+
+  @@index([menuId])
+  @@index([shopId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([title])
+  @@index([isAvailable])
+  @@index([sortOrder])
+  @@map("menu_items")
+}
+
+model ProductVariant {
+  id         Int      @id @default(autoincrement())
+  menuItemId Int?     @map("menu_item_id")
+  productId  Int?     @map("product_id")
+  sku        String?
+  name       String
+  value      String?
+  priceDelta Float    @default(0) @map("price_delta")
+  price      Float?
+  stock      Int      @default(0)
+  attributes Json?
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  menuItem   MenuItem?   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  product    Product?    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@unique([menuItemId, sku])
+  @@index([menuItemId])
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model ProductAttribute {
+  id         Int      @id @default(autoincrement())
+  menuItemId Int      @map("menu_item_id")
+  name       String
+  value      String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@index([menuItemId])
+  @@map("product_attributes")
+}
+
+model InventoryMovement {
+  id         Int                   @id @default(autoincrement())
+  menuItemId Int                   @map("menu_item_id")
+  type       InventoryMovementType
+  quantity   Int
+  note       String?
+  createdAt  DateTime              @default(now()) @map("created_at")
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@index([menuItemId, createdAt])
+  @@map("inventory_movements")
+}
+
+model MenuItemOption {
+  id                  Int      @id @default(autoincrement())
+  menuItemId          Int      @map("menu_item_id")
+  title               String
+  additionalPrice     Float    @default(0) @map("additional_price")
+  optionalDescription String?  @map("optional_description")
+  isAvailable         Boolean  @default(true) @map("is_available")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  menuItem     MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  orderDetails OrderDetail[]
+  cartItems    CartItem[]
+
+  @@index([menuItemId])
+  @@index([isAvailable])
+  @@map("menu_item_options")
+}
+
+model CartItem {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @map("user_id")
+  cartId           Int?     @map("cart_id")
+  menuItemId       Int?     @map("menu_item_id")
+  productId        Int?     @map("product_id")
+  menuItemOptionId Int?     @map("menu_item_option_id")
+  variantId        Int?     @map("variant_id")
+  cartKey          String   @map("cart_key")
+  quantity         Int      @default(1)
+  priceAtTime      Float?   @map("price_at_time")
+  note             String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cart           Cart?           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  menuItem       MenuItem?       @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  product        Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  menuItemOption MenuItemOption? @relation(fields: [menuItemOptionId], references: [id], onDelete: SetNull)
+  variant        ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, cartKey])
+  @@index([userId])
+  @@index([cartId])
+  @@index([menuItemId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model Order {
+  id                       Int                      @id @default(autoincrement())
+  userId                   Int                      @map("user_id")
+  totalPrice               Float                    @map("total_price")
+  orderCode                String?                  @unique @map("order_code")
+  totalAmount              Float?                   @map("total_amount")
+  shippingFee              Float                    @default(0) @map("shipping_fee")
+  discountAmount           Float                    @default(0) @map("discount_amount")
+  finalAmount              Float?                   @map("final_amount")
+  paymentMethod            PaymentMethod            @default(COD) @map("payment_method")
+  marketplacePaymentStatus MarketplacePaymentStatus @default(UNPAID) @map("marketplace_payment_status")
+  orderStatus              MarketplaceOrderStatus   @default(PENDING) @map("order_status")
+  status                   OrderStatus              @default(ordered)
+  paymentStatus            PaymentStatus            @default(pending) @map("payment_status")
+  paymentProvider          PaymentProvider          @default(cash) @map("payment_provider")
+  paymentIntentId          String?                  @map("payment_intent_id")
+  paymentUrl               String?                  @map("payment_url")
+  paidAt                   DateTime?                @map("paid_at")
+  customerName             String?                  @map("customer_name")
+  receiverName             String?                  @map("receiver_name")
+  phone                    String?
+  receiverPhone            String?                  @map("receiver_phone")
+  address                  String?
+  receiverAddress          String?                  @map("receiver_address")
+  note                     String?
+  orderTime                DateTime                 @default(now()) @map("order_time")
+  deliveryTime             DateTime?                @map("delivery_time")
+  createdAt                DateTime                 @default(now()) @map("created_at")
+  updatedAt                DateTime                 @updatedAt @map("updated_at")
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buyer      User          @relation("BuyerOrders", fields: [userId], references: [id], onDelete: Cascade, map: "orders_buyer_user_id_fkey")
+  details    OrderDetail[]
+  orderItems OrderItem[]
+  payments   Payment[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderStatus])
+  @@index([paymentStatus])
+  @@index([marketplacePaymentStatus])
+  @@index([orderTime])
+  @@map("orders")
+}
+
+model OrderItem {
+  id           Int      @id @default(autoincrement())
+  orderId      Int      @map("order_id")
+  sellerId     Int      @map("seller_id")
+  productId    Int      @map("product_id")
+  variantId    Int?     @map("variant_id")
+  productName  String   @map("product_name")
+  productImage String?  @map("product_image")
+  quantity     Int      @default(1)
+  price        Float
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  seller  SellerProfile   @relation(fields: [sellerId], references: [id], onDelete: Restrict)
+  product Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  review  Review?
+
+  @@index([orderId])
+  @@index([sellerId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model Payment {
+  id              Int                      @id @default(autoincrement())
+  orderId         Int                      @map("order_id")
+  method          PaymentMethod
+  amount          Float
+  transactionCode String?                  @map("transaction_code")
+  status          MarketplacePaymentStatus @default(UNPAID)
+  paidAt          DateTime?                @map("paid_at")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@map("payments")
+}
+
+model OrderDetail {
+  id               Int      @id @default(autoincrement())
+  orderId          Int      @map("order_id")
+  menuItemId       Int      @map("menu_item_id")
+  shopId           Int?     @map("shop_id")
+  menuItemOptionId Int?     @map("menu_item_option_id")
+  quantity         Int      @default(1)
+  itemTitle        String   @map("item_title")
+  optionTitle      String?  @map("option_title")
+  itemPrice        Float    @map("item_price")
+  optionPrice      Float    @default(0) @map("option_price")
+  unitPrice        Float    @map("unit_price")
+  totalPrice       Float    @map("total_price")
+  note             String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem       MenuItem        @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+  shop           Shop?           @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  menuItemOption MenuItemOption? @relation(fields: [menuItemOptionId], references: [id], onDelete: SetNull)
+  review         Review?
+
+  @@index([orderId])
+  @@index([menuItemId])
+  @@index([shopId])
+  @@map("order_details")
+}
+
+model Review {
+  id            Int              @id @default(autoincrement())
+  userId        Int              @map("user_id")
+  menuItemId    Int?             @map("menu_item_id")
+  productId     Int?             @map("product_id")
+  shopId        Int?             @map("shop_id")
+  targetType    ReviewTargetType @default(product) @map("target_type")
+  orderDetailId Int?             @unique @map("order_detail_id")
+  orderItemId   Int?             @unique @map("order_item_id")
+  rating        Float
+  comment       String?
+  sellerReply   String?          @map("seller_reply")
+  isHidden      Boolean          @default(false) @map("is_hidden")
+  hiddenReason  String?          @map("hidden_reason")
+  image         String?
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buyer       User         @relation("BuyerReviews", fields: [userId], references: [id], onDelete: Cascade, map: "reviews_buyer_user_id_fkey")
+  menuItem    MenuItem?    @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  product     Product?     @relation("ProductReviews", fields: [productId], references: [id], onDelete: SetNull)
+  shop        Shop?        @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  orderDetail OrderDetail? @relation(fields: [orderDetailId], references: [id], onDelete: Cascade)
+  orderItem   OrderItem?   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([menuItemId])
+  @@index([productId])
+  @@index([shopId])
+  @@index([targetType])
+  @@index([isHidden])
+  @@index([rating])
+  @@map("reviews")
+}
+
+model Conversation {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  shopId    Int?     @map("shop_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shop     Shop?     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([userId, shopId])
+  @@index([userId])
+  @@index([shopId])
+  @@index([updatedAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             Int             @id @default(autoincrement())
+  conversationId Int             @map("conversation_id")
+  senderId       Int?            @map("sender_id")
+  senderRole     ChatMessageRole @map("sender_role")
+  content        String
+  metadata       Json?
+  isRead         Boolean         @default(false) @map("is_read")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User?        @relation(fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([senderRole])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model AiMemory {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  key       String
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId])
+  @@map("ai_memories")
+}
+
+model ProductEmbedding {
+  id         Int                    @id @default(autoincrement())
+  menuItemId Int                    @map("menu_item_id")
+  content    String
+  embedding  Unsupported("vector")?
+  createdAt  DateTime               @default(now()) @map("created_at")
+  updatedAt  DateTime               @updatedAt @map("updated_at")
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@unique([menuItemId])
+  @@index([menuItemId])
+  @@map("product_embeddings")
+}
+
+model ProductView {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  menuItemId Int      @map("menu_item_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([menuItemId])
+  @@map("product_views")
+}
+
+model SearchHistory {
+  id         Int              @id @default(autoincrement())
+  userId     Int?             @map("user_id")
+  menuItemId Int?             @map("menu_item_id")
+  productId  Int?             @map("product_id")
+  keyword    String?
+  query      String
+  targetType SearchTargetType @default(all) @map("target_type")
+  shopId     Int?             @map("shop_id")
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  user            User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketplaceUser User?     @relation("UserSearchHistory", fields: [userId], references: [id], onDelete: Cascade, map: "search_history_marketplace_user_id_fkey")
+  menuItem        MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  product         Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([query])
+  @@index([keyword])
+  @@index([targetType])
+  @@index([shopId])
+  @@map("search_history")
+}
+
+model ProductViewHistory {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  productId Int      @map("product_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([productId])
+  @@map("product_view_history")
+}
+
+model RecommendationLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  productId Int      @map("product_id")
+  reason    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([productId])
+  @@map("recommendation_logs")
+}
+
+model ChatSession {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user     User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([userId])
+  @@index([updatedAt])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        Int        @id @default(autoincrement())
+  sessionId Int        @map("session_id")
+  sender    ChatSender
+  message   String
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("chat_messages")
+}

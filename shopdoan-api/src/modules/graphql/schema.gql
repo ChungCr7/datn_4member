@@ -1,0 +1,67 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AiAssistantResponseType {
+  intent: String!
+  message: String!
+  recommendations: [ProductType!]!
+}
+
+type Mutation {
+  askAi(message: String!): AiAssistantResponseType!
+}
+
+type PageMetaType {
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+type ProductPageType {
+  items: [ProductType!]!
+  meta: PageMetaType!
+}
+
+type ProductType {
+  basePrice: Float!
+  description: String
+  id: ID!
+  image: String
+  isAvailable: Boolean!
+  shopId: Int
+  stock: Int!
+  title: String!
+}
+
+type Query {
+  product(id: Int!): ProductType!
+  products(limit: Int, page: Int, search: String): ProductPageType!
+  recommendations(limit: Int, query: String): [ProductType!]!
+  sellerAnalytics: SellerAnalyticsType!
+  shop(id: Int!): ShopType!
+  shops(limit: Int, page: Int, search: String): ShopPageType!
+}
+
+type SellerAnalyticsType {
+  averageRating: Float!
+  orderItems: Int!
+  products: Int!
+  revenue: Float!
+}
+
+type ShopPageType {
+  meta: PageMetaType!
+  shops: [ShopType!]!
+}
+
+type ShopType {
+  banner: String
+  description: String
+  id: ID!
+  logo: String
+  ownerId: Int!
+  shopName: String!
+  status: String!
+}

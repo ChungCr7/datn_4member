@@ -1,0 +1,21 @@
+{
+  "name": "shopdoan-ui",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "test": "turbo test"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.0"
+  },
+  "dependencies": {
+    "i18next": "^26.2.0",
+    "next-i18next": "^16.0.7",
+    "react-i18next": "^17.0.8"
+  }
+}
