@@ -5,20 +5,34 @@ class MenuItemEntity {
     required this.basePrice,
     this.menuId,
     this.menuTitle,
+    this.slug,
     this.description,
     this.image,
     this.isAvailable = true,
+    this.stock = 0,
+    this.soldCount = 0,
+    this.ratingAverage = 0,
+    this.ratingCount = 0,
+    this.sellerName,
+    this.sellerId,
     this.options = const [],
   });
 
   final int id;
   final int? menuId;
   final String title;
+  final String? slug;
   final String? description;
   final num basePrice;
   final String? image;
   final bool isAvailable;
+  final int stock;
+  final int soldCount;
+  final num ratingAverage;
+  final int ratingCount;
   final String? menuTitle;
+  final String? sellerName;
+  final int? sellerId;
   final List<MenuItemOptionEntity> options;
 }
 

@@ -18,17 +18,25 @@ class OrderModel extends OrderEntity {
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       id: _asInt(json['id']) ?? 0,
-      customerName: json['customerName']?.toString(),
-      phone: json['phone']?.toString(),
-      address: json['address']?.toString(),
+      customerName: (json['receiverName'] ?? json['customerName'])?.toString(),
+      phone: (json['receiverPhone'] ?? json['phone'])?.toString(),
+      address: (json['receiverAddress'] ?? json['address'])?.toString(),
       note: json['note']?.toString(),
-      totalPrice: _asNum(json['totalPrice']) ?? 0,
-      status: (json['status'] ?? 'ordered').toString(),
+      totalPrice:
+          _asNum(
+            json['finalAmount'] ?? json['totalAmount'] ?? json['totalPrice'],
+          ) ??
+          0,
+      status: (json['orderStatus'] ?? json['status'] ?? 'ordered').toString(),
       paymentProvider: (json['paymentProvider'] ?? 'cash').toString(),
-      paymentStatus: (json['paymentStatus'] ?? 'pending').toString(),
+      paymentStatus:
+          (json['marketplacePaymentStatus'] ??
+                  json['paymentStatus'] ??
+                  'pending')
+              .toString(),
       createdAt: _asDate(json['createdAt'] ?? json['orderTime']),
       details: _asList(
-        json['details'],
+        json['orderItems'] ?? json['details'],
       ).map((value) => OrderDetailModel.fromJson(value)).toList(),
     );
   }
@@ -73,17 +81,25 @@ class OrderDetailModel extends OrderDetailEntity {
   factory OrderDetailModel.fromJson(Map<String, dynamic> json) {
     return OrderDetailModel(
       id: _asInt(json['id']) ?? 0,
-      menuItemId: _asInt(json['menuItemId']) ?? 0,
-      menuItemOptionId: _asInt(json['menuItemOptionId']),
+      menuItemId: _asInt(json['menuItemId'] ?? json['productId']) ?? 0,
+      menuItemOptionId: _asInt(json['menuItemOptionId'] ?? json['variantId']),
       quantity: _asInt(json['quantity']) ?? 1,
       itemTitle:
-          (json['itemTitle'] ?? _asMap(json['menuItem'])?['title'] ?? 'Mon an')
+          (json['productName'] ??
+                  json['itemTitle'] ??
+                  _asMap(json['product'])?['name'] ??
+                  _asMap(json['menuItem'])?['title'] ??
+                  'Sản phẩm')
               .toString(),
       optionTitle:
-          (json['optionTitle'] ?? _asMap(json['menuItemOption'])?['title'])
+          (json['optionTitle'] ??
+                  _asMap(json['variant'])?['value'] ??
+                  _asMap(json['menuItemOption'])?['title'])
               ?.toString(),
-      unitPrice: _asNum(json['unitPrice']) ?? 0,
-      totalPrice: _asNum(json['totalPrice']) ?? 0,
+      unitPrice: _asNum(json['unitPrice'] ?? json['price']) ?? 0,
+      totalPrice:
+          _asNum(json['totalPrice']) ??
+          ((_asNum(json['price']) ?? 0) * (_asInt(json['quantity']) ?? 1)),
       note: json['note']?.toString(),
     );
   }

@@ -15,16 +15,18 @@ class MenuModel extends MenuEntity {
   factory MenuModel.fromJson(Map<String, dynamic> json) {
     final count = _asMap(json['_count']);
     final items = _asList(
-      json['menuItems'],
+      json['menuItems'] ?? json['products'],
     ).map((value) => MenuItemModel.fromJson(value)).toList();
 
     return MenuModel(
       id: _asInt(json['id']) ?? 0,
-      title: (json['title'] ?? json['name'] ?? 'Danh muc').toString(),
+      title: (json['title'] ?? json['name'] ?? 'Danh mục').toString(),
       description: json['description']?.toString(),
       image: json['image']?.toString(),
       isActive: _asBool(json['isActive']) ?? true,
-      itemCount: _asInt(count?['menuItems']) ?? items.length,
+      itemCount:
+          _asInt(count?['marketplaceProducts'] ?? count?['menuItems']) ??
+          items.length,
       items: items,
     );
   }

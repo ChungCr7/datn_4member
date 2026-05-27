@@ -23,10 +23,10 @@ class OrderStatusBadge extends StatelessWidget {
 
   Color _colorForStatus(String value) {
     return switch (value) {
-      'confirmed' || 'preparing' => Colors.orange,
-      'on_the_way' => Colors.blue,
-      'delivered' => Colors.green,
-      'cancelled' => Colors.red,
+      'CONFIRMED' || 'confirmed' || 'PACKING' || 'preparing' => Colors.orange,
+      'SHIPPING' || 'on_the_way' => Colors.blue,
+      'DELIVERED' || 'delivered' => Colors.green,
+      'CANCELLED' || 'cancelled' => Colors.red,
       _ => Colors.brown,
     };
   }
@@ -34,23 +34,23 @@ class OrderStatusBadge extends StatelessWidget {
 
 String orderStatusLabel(String status) {
   return switch (status) {
-    'ordered' => 'Da dat',
-    'confirmed' => 'Da xac nhan',
-    'preparing' => 'Dang chuan bi',
-    'on_the_way' => 'Dang giao',
-    'delivered' => 'Da giao',
-    'cancelled' => 'Da huy',
+    'PENDING' || 'ordered' => 'Chờ xác nhận',
+    'CONFIRMED' || 'confirmed' => 'Đã xác nhận',
+    'PACKING' || 'preparing' => 'Đang đóng gói',
+    'SHIPPING' || 'on_the_way' => 'Đang giao',
+    'DELIVERED' || 'delivered' => 'Đã giao',
+    'CANCELLED' || 'cancelled' => 'Đã hủy',
     _ => status,
   };
 }
 
 String paymentStatusLabel(String status) {
   return switch (status) {
-    'pending' => 'Cho thanh toan',
-    'paid' => 'Da thanh toan',
-    'failed' => 'That bai',
-    'cancelled' => 'Da huy',
-    'refunded' => 'Da hoan tien',
+    'UNPAID' || 'pending' => 'Chờ thanh toán',
+    'PAID' || 'paid' => 'Đã thanh toán',
+    'FAILED' || 'failed' => 'Thất bại',
+    'cancelled' => 'Đã hủy',
+    'REFUNDED' || 'refunded' => 'Đã hoàn tiền',
     _ => status,
   };
 }

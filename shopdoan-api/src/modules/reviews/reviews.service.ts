@@ -22,6 +22,10 @@ export class ReviewsService {
       return this.createShopReview(dto, userId);
     }
 
+    if (dto.targetType === 'product' || dto.productId) {
+      return this.createProductReview(dto, userId);
+    }
+
     if (!dto.orderDetailId) {
       throw new BadRequestException('Bạn cần chọn lần mua để đánh giá');
     }
@@ -115,6 +119,69 @@ export class ReviewsService {
     return { message: 'Shop review created successfully', review };
   }
 
+  private async createProductReview(dto: CreateReviewDto, userId: number) {
+    if (!dto.productId) {
+      throw new BadRequestException('Product is required for product review');
+    }
+
+    const orderItem = dto.orderItemId
+      ? await this.prisma.orderItem.findUnique({
+          where: { id: dto.orderItemId },
+          include: { order: true, review: true },
+        })
+      : await this.prisma.orderItem.findFirst({
+          where: {
+            productId: dto.productId,
+            order: {
+              userId,
+              OR: [
+                { orderStatus: 'DELIVERED' },
+                { marketplacePaymentStatus: 'PAID' },
+                { status: 'delivered' },
+                { paymentStatus: 'paid' },
+              ],
+            },
+            review: null,
+          },
+          include: { order: true, review: true },
+          orderBy: { createdAt: 'desc' },
+        });
+
+    if (
+      !orderItem ||
+      orderItem.order.userId !== userId ||
+      orderItem.productId !== dto.productId
+    ) {
+      throw new BadRequestException(
+        'You must purchase this product before reviewing it',
+      );
+    }
+
+    if (orderItem.review) {
+      throw new BadRequestException('You already reviewed this purchase');
+    }
+
+    const review = await this.prisma.review.create({
+      data: {
+        rating: dto.rating,
+        comment: dto.comment || null,
+        image: dto.image || null,
+        productId: orderItem.productId,
+        orderItemId: orderItem.id,
+        targetType: 'product',
+        userId,
+      },
+      include: this.reviewInclude(),
+    });
+
+    await Promise.all([
+      this.refreshProductRating(orderItem.productId),
+      this.cacheService.del('reviews:all'),
+    ]);
+
+    return { message: 'Product review created successfully', review };
+  }
+
   async findAll(pagination: PaginationDto) {
     // Sanitize search input
     const searchTerm = pagination.search
@@ -176,6 +243,21 @@ export class ReviewsService {
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.review.count({ where: { menuItemId } }),
+    ]);
+
+    return this.withMeta(reviews, total, pagination);
+  }
+
+  async findByProduct(productId: number, pagination: PaginationDto) {
+    const [reviews, total] = await Promise.all([
+      this.prisma.review.findMany({
+        where: { productId, isHidden: false },
+        skip: pagination.skip,
+        take: pagination.take,
+        include: this.reviewInclude(),
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.review.count({ where: { productId, isHidden: false } }),
     ]);
 
     return this.withMeta(reviews, total, pagination);
@@ -289,7 +371,10 @@ export class ReviewsService {
       },
       include: this.reviewInclude(),
     });
-    await this.cacheService.del('reviews:all');
+    await Promise.all([
+      updated.productId ? this.refreshProductRating(updated.productId) : null,
+      this.cacheService.del('reviews:all'),
+    ]);
     return { message: 'Cập nhật đánh giá thành công', review: updated };
   }
 
@@ -303,7 +388,10 @@ export class ReviewsService {
     }
 
     await this.prisma.review.delete({ where: { id } });
-    await this.cacheService.del('reviews:all');
+    await Promise.all([
+      review.productId ? this.refreshProductRating(review.productId) : null,
+      this.cacheService.del('reviews:all'),
+    ]);
     return { message: 'Review deleted successfully' };
   }
 
@@ -320,10 +408,35 @@ export class ReviewsService {
     };
   }
 
+  async getProductRating(productId: number) {
+    const result = await this.prisma.review.aggregate({
+      where: { productId, isHidden: false },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+
+    return {
+      rating: Math.round((result._avg.rating || 0) * 10) / 10,
+      count: result._count.rating,
+    };
+  }
+
+  private async refreshProductRating(productId: number) {
+    const summary = await this.getProductRating(productId);
+    await this.prisma.product.update({
+      where: { id: productId },
+      data: {
+        ratingAverage: summary.rating,
+        ratingCount: summary.count,
+      },
+    });
+  }
+
   private reviewInclude() {
     return {
       user: { select: { id: true, name: true, email: true, image: true } },
       menuItem: { select: { id: true, title: true, image: true } },
+      product: { select: { id: true, name: true } },
       shop: { select: { id: true, shopName: true, logo: true } },
       orderDetail: {
         select: {

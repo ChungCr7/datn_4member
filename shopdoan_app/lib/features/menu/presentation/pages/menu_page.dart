@@ -16,7 +16,7 @@ class MenuPage extends GetView<FoodMenuController> {
     Get.find<FoodMenuController>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Thuc don')),
+      appBar: AppBar(title: const Text('Sản phẩm')),
       body: RefreshIndicator(
         onRefresh: controller.refreshAll,
         child: CustomScrollView(
@@ -29,12 +29,12 @@ class MenuPage extends GetView<FoodMenuController> {
                   onChanged: controller.onSearchChanged,
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.search),
-                    hintText: 'Tim mon an, danh muc',
+                    hintText: 'Tìm sản phẩm, danh mục, shop',
                     suffixIcon: Obx(
                       () => controller.searchText.value.isEmpty
                           ? const SizedBox.shrink()
                           : IconButton(
-                              tooltip: 'Xoa',
+                              tooltip: 'Xóa',
                               onPressed: controller.clearSearch,
                               icon: const Icon(Icons.close),
                             ),
@@ -89,24 +89,28 @@ class MenuPage extends GetView<FoodMenuController> {
               if (controller.items.isEmpty) {
                 return const SliverFillRemaining(
                   child: AppEmpty(
-                    icon: Icons.no_food_outlined,
-                    title: 'Khong tim thay mon an',
-                    message: 'Thu tu khoa khac hoac chon danh muc khac.',
+                    icon: Icons.shopping_bag_outlined,
+                    title: 'Không tìm thấy sản phẩm',
+                    message: 'Thử từ khóa khác hoặc chọn danh mục khác.',
                   ),
                 );
               }
               return SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                sliver: SliverList.separated(
+                sliver: SliverGrid.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    mainAxisExtent: 270,
+                  ),
                   itemBuilder: (context, index) {
                     final item = controller.items[index];
-                    return MenuItemCard(
+                    return ProductGridCard(
                       item: item,
                       onTap: () => controller.openDetail(item),
                     );
                   },
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
                   itemCount: controller.items.length,
                 ),
               );

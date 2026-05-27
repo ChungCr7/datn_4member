@@ -29,21 +29,21 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
   @override
   Future<List<ReviewModel>> getMenuItemReviews(int menuItemId) async {
     final response = await _dioClient.get<dynamic>(
-      '/reviews/menu-items/$menuItemId',
+      '/reviews/products/$menuItemId',
       queryParameters: {'page': 1, 'limit': 30},
     );
-    final body = _asMap(response.data);
+    final body = _unwrap(response.data);
     return _asList(
-      body?['reviews'] ?? response.data,
+      body?['reviews'] ?? body,
     ).map((json) => ReviewModel.fromJson(json)).toList();
   }
 
   @override
   Future<RatingSummaryModel> getMenuItemRating(int menuItemId) async {
     final response = await _dioClient.get<dynamic>(
-      '/reviews/menu-items/$menuItemId/rating',
+      '/reviews/products/$menuItemId/rating',
     );
-    return RatingSummaryModel.fromJson(_asMap(response.data) ?? const {});
+    return RatingSummaryModel.fromJson(_unwrap(response.data) ?? const {});
   }
 
   @override
@@ -55,13 +55,15 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
     final response = await _dioClient.post<dynamic>(
       '/reviews',
       data: {
-        'menuItemId': menuItemId,
+        'targetType': 'product',
+        'productId': menuItemId,
         'rating': rating,
         if (comment != null && comment.trim().isNotEmpty)
           'comment': comment.trim(),
       },
     );
-    return ReviewModel.fromJson(_asMap(response.data) ?? const {});
+    final body = _unwrap(response.data);
+    return ReviewModel.fromJson(_asMap(body?['review']) ?? body ?? const {});
   }
 
   @override
@@ -74,7 +76,8 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
       '/reviews/$id',
       data: {'rating': rating, 'comment': comment?.trim()},
     );
-    return ReviewModel.fromJson(_asMap(response.data) ?? const {});
+    final body = _unwrap(response.data);
+    return ReviewModel.fromJson(_asMap(body?['review']) ?? body ?? const {});
   }
 
   @override
@@ -86,6 +89,12 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return Map<String, dynamic>.from(value);
     return null;
+  }
+
+  Map<String, dynamic>? _unwrap(Object? value) {
+    final body = _asMap(value);
+    final data = _asMap(body?['data']);
+    return data ?? body;
   }
 
   List<Map<String, dynamic>> _asList(Object? value) {

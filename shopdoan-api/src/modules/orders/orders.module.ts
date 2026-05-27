@@ -7,9 +7,10 @@ import {
 } from './orders.controller';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { CacheService } from '@/common/cache.service';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, NotificationsModule],
   controllers: [
     OrdersController,
     SellerOrdersController,

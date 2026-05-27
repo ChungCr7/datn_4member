@@ -9,12 +9,14 @@ class FoodImage extends StatelessWidget {
     this.width,
     this.height,
     this.borderRadius = 8,
+    this.fit = BoxFit.cover,
   });
 
   final String? url;
   final double? width;
   final double? height;
   final double borderRadius;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +37,7 @@ class FoodImage extends StatelessWidget {
         imageUrl: imageUrl,
         width: width,
         height: height,
-        fit: BoxFit.cover,
+        fit: fit,
         placeholder: (context, url) => Shimmer.fromColors(
           baseColor: Colors.grey.shade300,
           highlightColor: Colors.grey.shade100,
@@ -68,7 +70,7 @@ class _ImageFallback extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: Icon(
-        Icons.fastfood,
+        Icons.shopping_bag_outlined,
         color: Theme.of(context).colorScheme.primary,
         size: 34,
       ),

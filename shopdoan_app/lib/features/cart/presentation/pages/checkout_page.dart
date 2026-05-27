@@ -52,15 +52,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final orderController = Get.find<OrderController>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Thanh toan')),
+      appBar: AppBar(title: const Text('Thanh toán')),
       body: Obx(() {
         if (cartController.items.isEmpty) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: AppButton(
-                label: 'Quay lai thuc don',
-                icon: Icons.restaurant_menu,
+                label: 'Quay lại mua sắm',
+                icon: Icons.storefront_outlined,
                 onPressed: () => Get.offAllNamed(AppRoutes.main),
               ),
             ),
@@ -74,17 +74,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
             children: [
               AppTextField(
                 controller: _nameController,
-                label: 'Ten nguoi nhan',
+                label: 'Tên người nhận',
                 prefixIcon: Icons.person_outline,
                 validator: (value) => Validators.required(
                   value,
-                  message: 'Vui long nhap ten nguoi nhan',
+                  message: 'Vui lòng nhập tên người nhận',
                 ),
               ),
               const SizedBox(height: 12),
               AppTextField(
                 controller: _phoneController,
-                label: 'So dien thoai',
+                label: 'Số điện thoại',
                 prefixIcon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
                 validator: Validators.phone,
@@ -92,24 +92,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
               const SizedBox(height: 12),
               AppTextField(
                 controller: _addressController,
-                label: 'Dia chi giao hang',
+                label: 'Địa chỉ giao hàng',
                 prefixIcon: Icons.location_on_outlined,
                 maxLines: 2,
                 validator: (value) => Validators.required(
                   value,
-                  message: 'Vui long nhap dia chi giao hang',
+                  message: 'Vui lòng nhập địa chỉ giao hàng',
                 ),
               ),
               const SizedBox(height: 12),
               AppTextField(
                 controller: _noteController,
-                label: 'Ghi chu don hang',
+                label: 'Ghi chú đơn hàng',
                 prefixIcon: Icons.notes_outlined,
                 maxLines: 3,
               ),
               const SizedBox(height: 18),
               Text(
-                'Tom tat don hang',
+                'Tóm tắt đơn hàng',
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
@@ -138,7 +138,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         children: [
                           const Expanded(
                             child: Text(
-                              'Tong cong',
+                              'Tổng cộng',
                               style: TextStyle(fontWeight: FontWeight.w900),
                             ),
                           ),
@@ -160,7 +160,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: AppButton(
-              label: 'Xac nhan COD',
+              label: 'Xác nhận COD',
               icon: Icons.check_circle_outline,
               isLoading:
                   cartController.isValidating.value ||

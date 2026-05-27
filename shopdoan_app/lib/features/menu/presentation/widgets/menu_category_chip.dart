@@ -16,7 +16,7 @@ class MenuCategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = menu?.title ?? 'Tat ca';
+    final title = menu?.title ?? 'Tất cả';
     final count = menu?.itemCount;
 
     return ChoiceChip(
@@ -24,7 +24,7 @@ class MenuCategoryChip extends StatelessWidget {
       onSelected: (_) => onTap(),
       label: Text(count == null || count == 0 ? title : '$title ($count)'),
       avatar: Icon(
-        menu == null ? Icons.apps_outlined : Icons.local_dining_outlined,
+        menu == null ? Icons.apps_outlined : Icons.category_outlined,
         size: 18,
       ),
       visualDensity: VisualDensity.compact,

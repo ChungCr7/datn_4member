@@ -17,6 +17,7 @@ class ReviewModel extends ReviewEntity {
   factory ReviewModel.fromJson(Map<String, dynamic> json) {
     final user = _asMap(json['user']);
     final menuItem = _asMap(json['menuItem']);
+    final product = _asMap(json['product']);
     return ReviewModel(
       id: _asInt(json['id']) ?? 0,
       rating: _asInt(json['rating']) ?? 0,
@@ -25,8 +26,13 @@ class ReviewModel extends ReviewEntity {
       userId: _asInt(json['userId'] ?? user?['id']),
       userName: (user?['name'] ?? user?['email'])?.toString(),
       userImage: user?['image']?.toString(),
-      menuItemId: _asInt(json['menuItemId'] ?? menuItem?['id']),
-      menuItemTitle: menuItem?['title']?.toString(),
+      menuItemId: _asInt(
+        json['menuItemId'] ??
+            json['productId'] ??
+            menuItem?['id'] ??
+            product?['id'],
+      ),
+      menuItemTitle: (menuItem?['title'] ?? product?['name'])?.toString(),
       createdAt:
           DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),

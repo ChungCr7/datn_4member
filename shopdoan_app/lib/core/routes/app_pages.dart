@@ -11,14 +11,15 @@ import '../../features/chatbot/presentation/pages/chatbot_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/main_layout.dart';
 import '../../features/menu/presentation/pages/menu_detail_page.dart';
-import '../../features/menu/presentation/pages/menu_items_page.dart';
 import '../../features/menu/presentation/pages/menu_page.dart';
+import '../../features/menu/presentation/pages/shop_profile_page.dart';
 import '../../features/orders/presentation/pages/order_detail_page.dart';
 import '../../features/orders/presentation/pages/order_history_page.dart';
 import '../../features/orders/presentation/pages/order_success_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/reviews/presentation/pages/create_review_page.dart';
+import '../../features/shop_chat/presentation/pages/shop_chat_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import 'app_routes.dart';
 
@@ -40,8 +41,9 @@ class AppPages {
     GetPage(name: AppRoutes.main, page: () => const MainLayout()),
     GetPage(name: AppRoutes.home, page: () => const HomePage()),
     GetPage(name: AppRoutes.menu, page: () => const MenuPage()),
-    GetPage(name: AppRoutes.menuItems, page: () => const MenuItemsPage()),
     GetPage(name: AppRoutes.menuDetail, page: () => const MenuDetailPage()),
+    GetPage(name: AppRoutes.shopProfile, page: () => const ShopProfilePage()),
+    GetPage(name: AppRoutes.shopChat, page: () => const ShopChatPage()),
     GetPage(name: AppRoutes.cart, page: () => const CartPage()),
     GetPage(name: AppRoutes.checkout, page: () => const CheckoutPage()),
     GetPage(name: AppRoutes.orderSuccess, page: () => const OrderSuccessPage()),

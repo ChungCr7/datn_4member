@@ -178,12 +178,32 @@ model User {
   marketplaceSearchHistory SearchHistory[]      @relation("UserSearchHistory")
   recommendationLogs       RecommendationLog[]
   chatSessions             ChatSession[]
+  notifications            Notification[]
 
   @@index([roleId])
   @@index([email])
   @@index([accountRole])
   @@index([isActive, createdAt])
   @@map("users")
+}
+
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  title     String
+  message   String
+  type      String    @default("system")
+  actionUrl String?   @map("action_url")
+  metadata  Json?
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
 
 model SellerProfile {

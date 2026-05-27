@@ -4,10 +4,12 @@ import 'package:get/get.dart';
 import '../../../cart/presentation/controllers/cart_controller.dart';
 import '../../../cart/presentation/pages/cart_page.dart';
 import '../../../menu/presentation/pages/menu_page.dart';
+import '../../../notifications/presentation/controllers/notification_controller.dart';
+import '../../../notifications/presentation/pages/notification_page.dart';
 import '../../../orders/presentation/pages/order_history_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
-import 'home_page.dart';
 import '../controllers/main_layout_controller.dart';
+import 'home_page.dart';
 
 class MainLayout extends GetView<MainLayoutController> {
   const MainLayout({super.key});
@@ -16,6 +18,7 @@ class MainLayout extends GetView<MainLayoutController> {
     HomePage(),
     MenuPage(),
     CartPage(),
+    NotificationPage(),
     OrderHistoryPage(),
     ProfilePage(),
   ];
@@ -23,6 +26,7 @@ class MainLayout extends GetView<MainLayoutController> {
   @override
   Widget build(BuildContext context) {
     final cartController = Get.find<CartController>();
+    final notificationController = Get.find<NotificationController>();
 
     return Obx(
       () => Scaffold(
@@ -34,12 +38,12 @@ class MainLayout extends GetView<MainLayoutController> {
             const NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home),
-              label: 'Trang chu',
+              label: 'Trang chủ',
             ),
             const NavigationDestination(
-              icon: Icon(Icons.restaurant_menu_outlined),
-              selectedIcon: Icon(Icons.restaurant_menu),
-              label: 'Thuc don',
+              icon: Icon(Icons.storefront_outlined),
+              selectedIcon: Icon(Icons.storefront),
+              label: 'Sản phẩm',
             ),
             NavigationDestination(
               icon: Obx(
@@ -56,17 +60,34 @@ class MainLayout extends GetView<MainLayoutController> {
                   child: const Icon(Icons.shopping_bag),
                 ),
               ),
-              label: 'Gio hang',
+              label: 'Giỏ hàng',
+            ),
+            NavigationDestination(
+              icon: Obx(
+                () => Badge(
+                  isLabelVisible: notificationController.unreadCount.value > 0,
+                  label: Text('${notificationController.unreadCount.value}'),
+                  child: const Icon(Icons.notifications_none_outlined),
+                ),
+              ),
+              selectedIcon: Obx(
+                () => Badge(
+                  isLabelVisible: notificationController.unreadCount.value > 0,
+                  label: Text('${notificationController.unreadCount.value}'),
+                  child: const Icon(Icons.notifications),
+                ),
+              ),
+              label: 'Thông báo',
             ),
             const NavigationDestination(
               icon: Icon(Icons.receipt_long_outlined),
               selectedIcon: Icon(Icons.receipt_long),
-              label: 'Don hang',
+              label: 'Đơn hàng',
             ),
             const NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person),
-              label: 'Ca nhan',
+              label: 'Cá nhân',
             ),
           ],
         ),

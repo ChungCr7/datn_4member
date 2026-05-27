@@ -48,9 +48,11 @@ class CartController extends GetxController {
     if (isValidating.value) return;
     isValidating.value = true;
     try {
-      final validated = await _cartRepository.validateItem(
+      final validated = await _cartRepository.addItem(
         menuItemId: item.id,
+        productId: item.id,
         menuItemOptionId: option?.id,
+        variantId: option?.id,
         quantity: quantity,
         note: note,
       );
@@ -58,7 +60,7 @@ class CartController extends GetxController {
       await _persist();
       Get.snackbar(
         'Gio hang',
-        'Da them ${validated.name}',
+        'Đã thêm ${validated.name}',
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (error) {
@@ -75,7 +77,9 @@ class CartController extends GetxController {
   Future<void> increase(String key) async {
     final index = items.indexWhere((item) => item.key == key);
     if (index < 0) return;
-    items[index] = items[index].copyWith(quantity: items[index].quantity + 1);
+    final nextQuantity = items[index].quantity + 1;
+    items[index] = items[index].copyWith(quantity: nextQuantity);
+    await _cartRepository.updateQuantity(key, nextQuantity);
     await _persist();
   }
 
@@ -85,14 +89,18 @@ class CartController extends GetxController {
     final current = items[index];
     if (current.quantity <= 1) {
       items.removeAt(index);
+      await _cartRepository.removeItem(key);
     } else {
-      items[index] = current.copyWith(quantity: current.quantity - 1);
+      final nextQuantity = current.quantity - 1;
+      items[index] = current.copyWith(quantity: nextQuantity);
+      await _cartRepository.updateQuantity(key, nextQuantity);
     }
     await _persist();
   }
 
   Future<void> remove(String key) async {
     items.removeWhere((item) => item.key == key);
+    await _cartRepository.removeItem(key);
     await _persist();
   }
 
@@ -118,6 +126,8 @@ class CartController extends GetxController {
         validatedItems.add(
           await _cartRepository.validateItem(
             menuItemId: item.menuItemId,
+            productId: item.productId ?? item.menuItemId,
+            variantId: item.variantId,
             menuItemOptionId: item.menuItemOptionId,
             quantity: item.quantity,
             note: item.note,

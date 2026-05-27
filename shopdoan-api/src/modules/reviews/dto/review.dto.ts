@@ -32,7 +32,17 @@ export class CreateReviewDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  productId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   orderDetailId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  orderItemId?: number;
 
   @IsOptional()
   @Type(() => Number)

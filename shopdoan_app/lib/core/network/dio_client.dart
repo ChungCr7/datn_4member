@@ -92,7 +92,7 @@ class DioClient {
       return await call();
     } on DioException catch (error) {
       throw ApiException(
-        _extractMessage(error.response?.data) ?? _messageForType(error.type),
+        _extractMessage(error.response?.data) ?? _messageForError(error),
         statusCode: error.response?.statusCode,
         errors: error.response?.data,
       );
@@ -212,13 +212,15 @@ class DioClient {
     return message?.toString();
   }
 
-  static String _messageForType(DioExceptionType type) {
-    return switch (type) {
+  static String _messageForError(DioException error) {
+    final server = error.requestOptions.uri.origin;
+    return switch (error.type) {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.sendTimeout ||
       DioExceptionType.receiveTimeout =>
-        'Ket noi may chu qua lau. Vui long thu lai.',
-      DioExceptionType.connectionError => 'Khong the ket noi may chu.',
+        'Ket noi may chu qua lau ($server). Vui long kiem tra API dang chay.',
+      DioExceptionType.connectionError =>
+        'Khong the ket noi may chu ($server). Vui long kiem tra API dang chay.',
       DioExceptionType.badCertificate => 'Chung chi may chu khong hop le.',
       DioExceptionType.cancel => 'Yeu cau da bi huy.',
       _ => 'Co loi xay ra. Vui long thu lai.',

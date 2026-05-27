@@ -15,6 +15,7 @@ import '../../features/menu/data/datasources/menu_remote_datasource.dart';
 import '../../features/menu/data/repositories/menu_repository_impl.dart';
 import '../../features/menu/domain/repositories/menu_repository.dart';
 import '../../features/menu/presentation/controllers/menu_controller.dart';
+import '../../features/notifications/presentation/controllers/notification_controller.dart';
 import '../../features/orders/data/datasources/order_remote_datasource.dart';
 import '../../features/orders/data/repositories/order_repository_impl.dart';
 import '../../features/orders/domain/repositories/order_repository.dart';
@@ -25,14 +26,12 @@ import '../../features/reviews/domain/repositories/review_repository.dart';
 import '../../features/reviews/presentation/controllers/review_controller.dart';
 import '../../features/splash/presentation/controllers/splash_controller.dart';
 import '../network/dio_client.dart';
-import '../network/network_info.dart';
 import '../storage/token_storage.dart';
 
 class InitialBinding extends Bindings {
   @override
   void dependencies() {
     Get.put<TokenStorage>(TokenStorage(), permanent: true);
-    Get.put<NetworkInfo>(NetworkInfo(), permanent: true);
     Get.put<DioClient>(DioClient(Get.find<TokenStorage>()), permanent: true);
     Get.putAsync<SharedPreferences>(
       () => SharedPreferences.getInstance(),
@@ -109,6 +108,10 @@ class InitialBinding extends Bindings {
     );
     Get.lazyPut<ReviewController>(
       () => ReviewController(Get.find<ReviewRepository>()),
+      fenix: true,
+    );
+    Get.lazyPut<NotificationController>(
+      () => NotificationController(Get.find<DioClient>()),
       fenix: true,
     );
   }

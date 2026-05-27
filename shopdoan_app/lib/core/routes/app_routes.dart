@@ -9,8 +9,9 @@ class AppRoutes {
   static const main = '/main';
   static const home = '/home';
   static const menu = '/menu';
-  static const menuItems = '/menu-items';
   static const menuDetail = '/menu-detail';
+  static const shopProfile = '/shop-profile';
+  static const shopChat = '/shop-chat';
   static const cart = '/cart';
   static const checkout = '/checkout';
   static const orderSuccess = '/order-success';

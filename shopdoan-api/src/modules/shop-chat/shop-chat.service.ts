@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { ChatMessageRole } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 
 type AuthUser = {
   role?: string;
@@ -14,7 +15,10 @@ type AuthUser = {
 
 @Injectable()
 export class ShopChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async getBuyerConversation(sellerId: number, userId: number) {
     const conversation = await this.getOrCreateConversation(sellerId, userId);
@@ -34,6 +38,7 @@ export class ShopChatService {
       },
     });
     await this.touchConversation(conversation.id);
+    await this.notifyShopOwner(conversation.id, userId, message);
 
     return this.response('Message sent successfully', {
       conversation: await this.serializeConversation(conversation.id),
@@ -45,7 +50,16 @@ export class ShopChatService {
     const conversations = await this.prisma.conversation.findMany({
       where: { shopId: { in: shopIds } },
       include: {
-        user: { select: { id: true, name: true, fullName: true, email: true, avatar: true, image: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            fullName: true,
+            email: true,
+            avatar: true,
+            image: true,
+          },
+        },
         shop: true,
         messages: { orderBy: { createdAt: 'desc' }, take: 1 },
         _count: { select: { messages: true } },
@@ -90,11 +104,14 @@ export class ShopChatService {
       data: {
         conversationId,
         senderId: userId,
-        senderRole: this.isAdmin(user) ? ChatMessageRole.admin : ChatMessageRole.seller,
+        senderRole: this.isAdmin(user)
+          ? ChatMessageRole.admin
+          : ChatMessageRole.seller,
         content: message.trim(),
       },
     });
     await this.touchConversation(conversationId);
+    await this.notifyBuyer(conversationId, userId, message);
 
     return this.response('Message sent successfully', {
       conversation: await this.serializeConversation(conversationId),
@@ -180,11 +197,29 @@ export class ShopChatService {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
       include: {
-        user: { select: { id: true, name: true, fullName: true, email: true, avatar: true, image: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            fullName: true,
+            email: true,
+            avatar: true,
+            image: true,
+          },
+        },
         shop: true,
         messages: {
           include: {
-            sender: { select: { id: true, name: true, fullName: true, email: true, avatar: true, image: true } },
+            sender: {
+              select: {
+                id: true,
+                name: true,
+                fullName: true,
+                email: true,
+                avatar: true,
+                image: true,
+              },
+            },
           },
           orderBy: { createdAt: 'asc' },
         },
@@ -219,8 +254,55 @@ export class ShopChatService {
     });
   }
 
+  private async notifyShopOwner(
+    conversationId: number,
+    senderId: number,
+    message: string,
+  ) {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: {
+        user: { select: { name: true, fullName: true, email: true } },
+        shop: { select: { ownerId: true, shopName: true } },
+      },
+    });
+    const ownerId = conversation?.shop?.ownerId;
+    if (!ownerId || ownerId === senderId) return;
+
+    await this.notificationsService.createForUser(ownerId, {
+      title: `Tin nhắn mới từ ${conversation.user?.fullName || conversation.user?.name || conversation.user?.email || 'khách hàng'}`,
+      message: message.trim(),
+      type: 'chat',
+      actionUrl: `/shop-chat/${conversationId}`,
+      metadata: { conversationId, shopName: conversation.shop?.shopName },
+    });
+  }
+
+  private async notifyBuyer(
+    conversationId: number,
+    senderId: number,
+    message: string,
+  ) {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: { shop: { select: { shopName: true } } },
+    });
+    const buyerId = conversation?.userId;
+    if (!buyerId || buyerId === senderId) return;
+
+    await this.notificationsService.createForUser(buyerId, {
+      title: `Phản hồi từ ${conversation.shop?.shopName || 'shop'}`,
+      message: message.trim(),
+      type: 'chat',
+      actionUrl: `/shop-chat/${conversationId}`,
+      metadata: { conversationId, shopName: conversation.shop?.shopName },
+    });
+  }
+
   private isAdmin(user?: AuthUser) {
-    const role = String(user?.accountRole || user?.role || user?.legacyRole || '').toUpperCase();
+    const role = String(
+      user?.accountRole || user?.role || user?.legacyRole || '',
+    ).toUpperCase();
     return role === 'ADMIN' || role === 'ROOT';
   }
 

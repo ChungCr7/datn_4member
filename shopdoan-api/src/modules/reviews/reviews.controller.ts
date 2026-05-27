@@ -58,6 +58,21 @@ export class ReviewsController {
     return this.reviewsService.getMenuItemRating(menuItemId);
   }
 
+  @Get('products/:productId')
+  @Public()
+  findByProduct(
+    @Param('productId', ParseIntPipe) productId: number,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.reviewsService.findByProduct(productId, pagination);
+  }
+
+  @Get('products/:productId/rating')
+  @Public()
+  getProductRating(@Param('productId', ParseIntPipe) productId: number) {
+    return this.reviewsService.getProductRating(productId);
+  }
+
   @Get('menu-items/:menuItemId/eligibility')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

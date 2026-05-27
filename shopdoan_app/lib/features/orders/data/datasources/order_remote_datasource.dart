@@ -34,16 +34,16 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     final response = await _dioClient.post<dynamic>(
       '/orders',
       data: {
-        'customerName': customerName.trim(),
-        'phone': phone.trim(),
-        'address': address.trim(),
+        'receiverName': customerName.trim(),
+        'receiverPhone': phone.trim(),
+        'receiverAddress': address.trim(),
         if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
-        'paymentProvider': 'cash',
-        'details': cartItems
+        'paymentMethod': 'COD',
+        'items': cartItems
             .map(
               (item) => {
-                'menuItemId': item.menuItemId,
-                'menuItemOptionId': ?item.menuItemOptionId,
+                'productId': item.productId ?? item.menuItemId,
+                'variantId': ?item.variantId,
                 'quantity': item.quantity,
                 if (item.note != null && item.note!.trim().isNotEmpty)
                   'note': item.note!.trim(),
@@ -52,13 +52,13 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
             .toList(),
       },
     );
-    return OrderModel.fromJson(_asMap(response.data) ?? const {});
+    return OrderModel.fromJson(_unwrap(response.data) ?? const {});
   }
 
   @override
   Future<List<OrderModel>> getUserOrders(int userId) async {
     final response = await _dioClient.get<dynamic>(
-      '/orders/user/$userId',
+      '/orders/me',
       queryParameters: {
         'page': 1,
         'limit': 50,
@@ -66,25 +66,31 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         'sortOrder': 'desc',
       },
     );
-    final body = _asMap(response.data);
+    final body = _unwrap(response.data);
     return _asList(
-      body?['orders'] ?? response.data,
+      body?['orders'] ?? body,
     ).map((json) => OrderModel.fromJson(json)).toList();
   }
 
   @override
   Future<OrderModel> getOrderById(int id) async {
     final response = await _dioClient.get<dynamic>('/orders/$id');
-    return OrderModel.fromJson(_asMap(response.data) ?? const {});
+    return OrderModel.fromJson(_unwrap(response.data) ?? const {});
   }
 
   @override
   Future<OrderModel> cancelOrder(int id) async {
     final response = await _dioClient.patch<dynamic>(
-      '/orders/$id',
-      data: {'status': 'cancelled'},
+      '/orders/$id/cancel',
+      data: const {},
     );
-    return OrderModel.fromJson(_asMap(response.data) ?? const {});
+    return OrderModel.fromJson(_unwrap(response.data) ?? const {});
+  }
+
+  Map<String, dynamic>? _unwrap(Object? value) {
+    final body = _asMap(value);
+    final data = _asMap(body?['data']);
+    return data ?? body;
   }
 
   Map<String, dynamic>? _asMap(Object? value) {

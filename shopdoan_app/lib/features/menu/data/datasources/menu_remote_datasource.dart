@@ -20,26 +20,23 @@ class MenuRemoteDataSourceImpl implements MenuRemoteDataSource {
   @override
   Future<List<MenuModel>> getMenus({String? search}) async {
     final response = await _dioClient.get<dynamic>(
-      '/menus',
+      '/categories',
       queryParameters: {
         'page': 1,
         'limit': 50,
-        'filter': 'active',
-        'sortBy': 'sortOrder',
-        'sortOrder': 'asc',
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
       },
     );
-    final body = _asMap(response.data);
+    final body = _unwrap(response.data);
     return _asList(
-      body?['menus'] ?? response.data,
+      body?['categories'] ?? body,
     ).map((json) => MenuModel.fromJson(json)).toList();
   }
 
   @override
   Future<MenuModel> getMenuById(int id) async {
-    final response = await _dioClient.get<dynamic>('/menus/$id');
-    return MenuModel.fromJson(_asMap(response.data) ?? const {});
+    final response = await _dioClient.get<dynamic>('/categories/$id');
+    return MenuModel.fromJson(_unwrap(response.data) ?? const {});
   }
 
   @override
@@ -48,26 +45,47 @@ class MenuRemoteDataSourceImpl implements MenuRemoteDataSource {
     int? menuId,
   }) async {
     final response = await _dioClient.get<dynamic>(
-      menuId == null ? '/menu-items' : '/menu-items/menu/$menuId',
+      '/products',
       queryParameters: {
         'page': 1,
         'limit': 80,
-        'filter': 'available',
-        'sortBy': 'sortOrder',
-        'sortOrder': 'asc',
-        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+        'sortBy': 'newest',
+        'categoryId': ?menuId,
+        if (search != null && search.trim().isNotEmpty)
+          'keyword': search.trim(),
       },
     );
-    final body = _asMap(response.data);
+    final body = _unwrap(response.data);
+    final products = _asList(
+      body?['products'] ?? body,
+    ).map((json) => MenuItemModel.fromJson(json)).toList();
+
+    if (products.isNotEmpty ||
+        menuId != null ||
+        search?.trim().isNotEmpty == true) {
+      return products;
+    }
+
+    final fallback = await _dioClient.get<dynamic>(
+      '/recommendations/home',
+      queryParameters: {'limit': 80},
+    );
+    final fallbackBody = _unwrap(fallback.data);
     return _asList(
-      body?['items'] ?? response.data,
+      fallbackBody?['products'],
     ).map((json) => MenuItemModel.fromJson(json)).toList();
   }
 
   @override
   Future<MenuItemModel> getMenuItemById(int id) async {
-    final response = await _dioClient.get<dynamic>('/menu-items/$id');
-    return MenuItemModel.fromJson(_asMap(response.data) ?? const {});
+    final response = await _dioClient.get<dynamic>('/products/$id');
+    return MenuItemModel.fromJson(_unwrap(response.data) ?? const {});
+  }
+
+  Map<String, dynamic>? _unwrap(Object? value) {
+    final body = _asMap(value);
+    final data = _asMap(body?['data']);
+    return data ?? body;
   }
 
   Map<String, dynamic>? _asMap(Object? value) {

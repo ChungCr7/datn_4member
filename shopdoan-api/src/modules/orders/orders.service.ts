@@ -8,12 +8,14 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { CacheService } from '@/common/cache.service';
 import { PaginationDto } from '@/common/pagination.dto';
 import { CreateOrderDto, UpdateOrderDto } from './dto/order.dto';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 
 @Injectable()
 export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private cacheService: CacheService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(dto: CreateOrderDto, userId: number) {
@@ -123,6 +125,13 @@ export class OrdersService {
     );
 
     await this.cacheService.del('orders:all');
+    await this.notificationsService.createForUser(userId, {
+      title: 'Đặt hàng thành công',
+      message: `Đơn hàng #${order.id} đã được tạo và đang chờ xác nhận.`,
+      type: 'order',
+      actionUrl: `/orders/${order.id}`,
+      metadata: { orderId: order.id },
+    });
     return order;
   }
 
@@ -274,6 +283,17 @@ export class OrdersService {
           where: {
             userId,
             productId: { in: productIds },
+          },
+        });
+
+        await tx.notification.create({
+          data: {
+            userId,
+            title: 'Đặt hàng thành công',
+            message: `Đơn hàng ${order.orderCode || `#${order.id}`} đã được tạo và đang chờ xác nhận.`,
+            type: 'order',
+            actionUrl: `/orders/${order.id}`,
+            metadata: { orderId: order.id, orderCode: order.orderCode },
           },
         });
 
@@ -536,6 +556,13 @@ export class OrdersService {
     });
 
     await this.cacheService.del('orders:all');
+    await this.notificationsService.createForUser(updated.userId, {
+      title: 'Đơn hàng đã cập nhật',
+      message: `Đơn hàng ${updated.orderCode || `#${updated.id}`} hiện ở trạng thái ${updated.orderStatus}.`,
+      type: 'order',
+      actionUrl: `/orders/${updated.id}`,
+      metadata: { orderId: updated.id, orderStatus: updated.orderStatus },
+    });
     return updated;
   }
 
@@ -579,6 +606,14 @@ export class OrdersService {
       });
     });
 
+    await this.notificationsService.createForUser(updated.userId, {
+      title: 'Đơn hàng đã hủy',
+      message: `Đơn hàng ${updated.orderCode || `#${updated.id}`} đã được hủy.`,
+      type: 'order',
+      actionUrl: `/orders/${updated.id}`,
+      metadata: { orderId: updated.id, orderStatus: updated.orderStatus },
+    });
+
     return this.response('Order cancelled successfully', updated);
   }
 
@@ -616,6 +651,13 @@ export class OrdersService {
           : {}),
       },
       include: this.orderInclude(),
+    });
+    await this.notificationsService.createForUser(updated.userId, {
+      title: 'Trạng thái đơn hàng thay đổi',
+      message: `Đơn hàng ${updated.orderCode || `#${updated.id}`} hiện ở trạng thái ${updated.orderStatus}.`,
+      type: 'order',
+      actionUrl: `/orders/${updated.id}`,
+      metadata: { orderId: updated.id, orderStatus: updated.orderStatus },
     });
     return this.response('Order status updated successfully', updated);
   }

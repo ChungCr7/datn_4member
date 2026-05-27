@@ -6,7 +6,6 @@ import '../../../../core/widgets/app_empty.dart';
 import '../../../../core/widgets/app_error.dart';
 import '../../../../core/widgets/app_loading.dart';
 import '../../../menu/presentation/controllers/menu_controller.dart';
-import '../../../menu/presentation/widgets/menu_category_chip.dart';
 import '../../../menu/presentation/widgets/menu_item_card.dart';
 
 class HomePage extends GetView<FoodMenuController> {
@@ -17,85 +16,74 @@ class HomePage extends GetView<FoodMenuController> {
     Get.find<FoodMenuController>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('ShopDoAn'),
-        actions: [
-          IconButton(
-            tooltip: 'Chatbot',
-            onPressed: () => Get.toNamed(AppRoutes.chatbot),
-            icon: const Icon(Icons.support_agent_outlined),
-          ),
-        ],
-      ),
       body: RefreshIndicator(
         onRefresh: controller.refreshAll,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          children: [
-            _HomeBanner(onMenuTap: () => Get.toNamed(AppRoutes.menu)),
-            const SizedBox(height: 16),
-            TextField(
-              readOnly: true,
-              onTap: () => Get.toNamed(AppRoutes.menu),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Tim mon an',
+        child: CustomScrollView(
+          slivers: [
+            _HomeHeader(onChat: () => Get.toNamed(AppRoutes.chatbot)),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: _SearchBox(onTap: () => Get.toNamed(AppRoutes.menu)),
               ),
             ),
-            const SizedBox(height: 22),
-            _SectionHeader(
-              title: 'Danh muc',
-              actionLabel: 'Tat ca',
-              onAction: () => Get.toNamed(AppRoutes.menu),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: _PromoBand(onTap: () => Get.toNamed(AppRoutes.menu)),
+              ),
             ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 44,
-              child: Obx(
-                () => ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: controller.menus.length + 1,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return MenuCategoryChip(
-                        menu: null,
-                        selected: controller.selectedMenuId.value == null,
-                        onTap: () {
-                          controller.selectMenu(null);
-                          Get.toNamed(AppRoutes.menu);
-                        },
-                      );
-                    }
-                    final menu = controller.menus[index - 1];
-                    return MenuCategoryChip(
-                      menu: menu,
-                      selected: controller.selectedMenuId.value == menu.id,
-                      onTap: () {
-                        controller.selectMenu(menu.id);
-                        Get.toNamed(AppRoutes.menuItems);
-                      },
-                    );
-                  },
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+                child: _SectionHeader(
+                  title: 'Danh mục',
+                  actionLabel: 'Tất cả',
+                  onAction: () => Get.toNamed(AppRoutes.menu),
                 ),
               ),
             ),
-            const SizedBox(height: 22),
-            _SectionHeader(
-              title: 'Mon noi bat',
-              actionLabel: 'Xem them',
-              onAction: () => Get.toNamed(AppRoutes.menu),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 92,
+                child: Obx(
+                  () => ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: controller.menus.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final menu = controller.menus[index];
+                      return _CategoryShortcut(
+                        title: menu.title,
+                        onTap: () {
+                          controller.selectMenu(menu.id);
+                          Get.toNamed(AppRoutes.menu);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 10),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+                child: _SectionHeader(
+                  title: 'Gợi ý hôm nay',
+                  actionLabel: 'Xem thêm',
+                  onAction: () => Get.toNamed(AppRoutes.menu),
+                ),
+              ),
+            ),
             Obx(() {
               if (controller.isLoading.value && controller.items.isEmpty) {
-                return const SizedBox(height: 360, child: AppLoading());
+                return const SliverFillRemaining(child: AppLoading());
               }
               if (controller.errorMessage.value.isNotEmpty &&
                   controller.items.isEmpty) {
-                return SizedBox(
-                  height: 260,
+                return SliverFillRemaining(
                   child: AppError(
                     message: controller.errorMessage.value,
                     onRetry: controller.loadItems,
@@ -104,26 +92,33 @@ class HomePage extends GetView<FoodMenuController> {
               }
               final items = controller.featuredItems;
               if (items.isEmpty) {
-                return const SizedBox(
-                  height: 260,
+                return const SliverFillRemaining(
                   child: AppEmpty(
-                    icon: Icons.no_food_outlined,
-                    title: 'Chua co mon an',
+                    icon: Icons.shopping_bag_outlined,
+                    title: 'Chưa có sản phẩm',
                     message:
-                        'Danh sach mon se hien thi khi backend co du lieu.',
+                        'Kiểm tra lại dữ liệu sản phẩm ACTIVE hoặc seller đã duyệt.',
                   ),
                 );
               }
-              return Column(
-                children: [
-                  for (final item in items) ...[
-                    MenuItemCard(
+              return SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                sliver: SliverGrid.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    mainAxisExtent: 270,
+                  ),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return ProductGridCard(
                       item: item,
                       onTap: () => controller.openDetail(item),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                ],
+                    );
+                  },
+                  itemCount: items.length,
+                ),
               );
             }),
           ],
@@ -133,42 +128,162 @@ class HomePage extends GetView<FoodMenuController> {
   }
 }
 
-class _HomeBanner extends StatelessWidget {
-  const _HomeBanner({required this.onMenuTap});
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({required this.onChat});
 
-  final VoidCallback onMenuTap;
+  final VoidCallback onChat;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(8),
+    final colorScheme = Theme.of(context).colorScheme;
+    return SliverAppBar(
+      pinned: true,
+      expandedHeight: 112,
+      backgroundColor: colorScheme.primary,
+      foregroundColor: Colors.white,
+      title: const Text(
+        'ShopDoan',
+        style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Hom nay an gi?',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
+      actions: [
+        IconButton(
+          tooltip: 'Trợ lý AI',
+          onPressed: onChat,
+          icon: const Icon(Icons.support_agent_outlined),
+        ),
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        background: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [colorScheme.primary, Colors.deepOrange.shade400],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Dat mon nhanh, theo doi don hang gon, thanh toan COD san sang cho demo.',
-            style: TextStyle(color: Colors.white),
+          child: const Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 18),
+              child: Text(
+                'Mua sắm nhanh, ưu đãi mỗi ngày',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 14),
-          FilledButton.tonalIcon(
-            onPressed: onMenuTap,
-            icon: const Icon(Icons.restaurant_menu),
-            label: const Text('Xem thuc don'),
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchBox extends StatelessWidget {
+  const _SearchBox({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      elevation: 1,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            children: [
+              Icon(Icons.search, color: Colors.deepOrange),
+              SizedBox(width: 8),
+              Expanded(child: Text('Tìm sản phẩm, thương hiệu, shop')),
+              Icon(Icons.camera_alt_outlined, size: 20),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PromoBand extends StatelessWidget {
+  const _PromoBand({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Ink(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade100),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.local_shipping_outlined, color: Colors.deepOrange),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Freeship demo 15k - thanh toán COD khi nhận hàng',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+            Icon(Icons.chevron_right),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryShortcut extends StatelessWidget {
+  const _CategoryShortcut({required this.title, required this.onTap});
+
+  final String title;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 72,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Column(
+          children: [
+            Container(
+              height: 52,
+              width: 52,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade100),
+              ),
+              child: const Icon(
+                Icons.category_outlined,
+                color: Colors.deepOrange,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, height: 1.1),
+            ),
+          ],
+        ),
       ),
     );
   }

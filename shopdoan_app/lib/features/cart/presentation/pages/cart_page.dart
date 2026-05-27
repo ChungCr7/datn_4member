@@ -16,13 +16,13 @@ class CartPage extends GetView<CartController> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gio hang'),
+        title: const Text('Giỏ hàng'),
         actions: [
           Obx(
             () => controller.items.isEmpty
                 ? const SizedBox.shrink()
                 : IconButton(
-                    tooltip: 'Xoa gio hang',
+                    tooltip: 'Xóa giỏ hàng',
                     onPressed: controller.clear,
                     icon: const Icon(Icons.delete_sweep_outlined),
                   ),
@@ -36,8 +36,8 @@ class CartPage extends GetView<CartController> {
         if (controller.items.isEmpty) {
           return const AppEmpty(
             icon: Icons.shopping_bag_outlined,
-            title: 'Gio hang dang trong',
-            message: 'Hay chon mon tu thuc don de bat dau dat hang.',
+            title: 'Giỏ hàng đang trống',
+            message: 'Hãy chọn sản phẩm để bắt đầu đặt hàng.',
           );
         }
 
@@ -70,6 +70,15 @@ class CartPage extends GetView<CartController> {
                             const SizedBox(height: 4),
                             Text(
                               item.note!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                          if (item.sellerName?.isNotEmpty == true) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              item.sellerName!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.bodySmall,
@@ -123,7 +132,7 @@ class CartPage extends GetView<CartController> {
                   children: [
                     const Expanded(
                       child: Text(
-                        'Tong cong',
+                        'Tổng cộng',
                         style: TextStyle(fontWeight: FontWeight.w900),
                       ),
                     ),
@@ -147,7 +156,7 @@ class CartPage extends GetView<CartController> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.payments_outlined),
-                  label: const Text('Thanh toan COD'),
+                  label: const Text('Thanh toán COD'),
                 ),
               ],
             ),
